@@ -1,6 +1,10 @@
-export const metadata = {
-  title: "LFM Agro 🌱🚜",
-  description: "Plataforma LFM Agro"
+import "./globals.css";
+import "leaflet/dist/leaflet.css";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "LFM Agro",
+  description: "Plataforma agrícola inteligente.",
 };
 
 export default function RootLayout({
@@ -10,14 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body style={{
-        margin: 0,
-        fontFamily: "Arial, sans-serif",
-        background: "#0b0f14",
-        color: "white"
-      }}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
