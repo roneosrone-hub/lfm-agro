@@ -1,83 +1,114 @@
-export default function HomePage() {
+export default function Home() {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        padding: "48px 20px",
-        background: "#0b0f14",
-        color: "#e8eef7",
-        fontFamily:
-          'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
-      }}
-    >
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 42, lineHeight: "42px" }}>🌱</div>
-          <h1 style={{ fontSize: 40, margin: 0, fontWeight: 800 }}>
-            LFM Agro
-          </h1>
+    <main style={styles.page}>
+      <div style={styles.container}>
+        <div style={styles.brand}>
+          <div style={styles.logo}>🌱</div>
+          <h1 style={styles.title}>LFM Agro</h1>
         </div>
 
-        <p style={{ marginTop: 10, opacity: 0.9, fontSize: 16 }}>
-          Plataforma agrícola inteligente.
-        </p>
+        <p style={styles.subtitle}>Plataforma agrícola inteligente.</p>
 
-        <div style={{ marginTop: 26, display: "grid", gap: 12 }}>
-          <a href="/produtor" style={btnPrimary}>
-            👨‍🌾 Entrar como Produtor
-          </a>
+        <a href="/produtor" style={{ ...styles.btn, ...styles.btnPrimary }}>
+          👨‍🌾 Entrar como Produtor
+        </a>
 
-          <a href="/tecnico" style={btnSecondary}>
-            🧑‍🔬 Entrar como Técnico
-          </a>
-        </div>
+        <a href="/tecnico" style={{ ...styles.btn, ...styles.btnGhost }}>
+          👩‍🔬 Entrar como Técnico
+        </a>
 
-        <div
-          style={{
-            marginTop: 22,
-            padding: 14,
-            borderRadius: 14,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "rgba(255,255,255,0.03)",
-            fontSize: 14,
-            opacity: 0.95,
-          }}
-        >
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Atalhos</div>
-          <div style={{ display: "grid", gap: 6 }}>
-            <span>👉 /produtor</span>
-            <span>👉 /tecnico</span>
-          </div>
+        <div style={styles.card}>
+          <div style={styles.cardTitle}>Atalhos</div>
+          <div style={styles.linkRow}>👉 /produtor</div>
+          <div style={styles.linkRow}>👉 /tecnico</div>
         </div>
       </div>
     </main>
   );
 }
 
-const btnBase: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 10,
-  padding: "14px 16px",
-  borderRadius: 14,
-  textDecoration: "none",
-  fontWeight: 800,
-  fontSize: 16,
-  lineHeight: "16px",
-  transition: "transform 0.06s ease",
-};
-
-const btnPrimary: React.CSSProperties = {
-  ...btnBase,
-  background: "#e8eef7",
-  color: "#0b0f14",
-  border: "1px solid rgba(255,255,255,0.12)",
-};
-
-const btnSecondary: React.CSSProperties = {
-  ...btnBase,
-  background: "transparent",
-  color: "#e8eef7",
-  border: "1px solid rgba(255,255,255,0.18)",
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: "100vh",
+    background: "radial-gradient(1200px 600px at 20% 0%, #1b2a2b, #090d10)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+    fontFamily:
+      'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+  },
+  container: {
+    width: "100%",
+    maxWidth: 560,
+    display: "flex",
+    flexDirection: "column",
+    gap: 14,
+  },
+  brand: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  logo: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    fontSize: 22,
+  },
+  title: {
+    margin: 0,
+    fontSize: 40,
+    letterSpacing: 0.4,
+  },
+  subtitle: {
+    margin: 0,
+    opacity: 0.85,
+    fontSize: 18,
+  },
+  btn: {
+    display: "block",
+    width: "100%",
+    textAlign: "center",
+    padding: "16px 16px",
+    borderRadius: 18,
+    textDecoration: "none",
+    fontSize: 18,
+    fontWeight: 700,
+    transition: "transform 0.06s ease",
+  },
+  btnPrimary: {
+    background: "rgba(255,255,255,0.92)",
+    color: "#0b1115",
+  },
+  btnGhost: {
+    background: "rgba(255,255,255,0.06)",
+    color: "#fff",
+    border: "1px solid rgba(255,255,255,0.12)",
+  },
+  card: {
+    marginTop: 4,
+    padding: 16,
+    borderRadius: 18,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.10)",
+  },
+  cardTitle: {
+    fontWeight: 800,
+    marginBottom: 10,
+    opacity: 0.9,
+  },
+  linkRow: {
+    padding: "8px 10px",
+    borderRadius: 12,
+    background: "rgba(0,0,0,0.25)",
+    border: "1px solid rgba(255,255,255,0.06)",
+    marginBottom: 8,
+  },
 };
