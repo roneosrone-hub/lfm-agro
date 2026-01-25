@@ -5,7 +5,7 @@ import MobileMenu from "./_components/MobileMenu";
 
 export default function HomePage() {
   return (
-    <main className="appShell premium">
+    <main className="appShell">
       <div className="bgFx" aria-hidden="true">
         <div className="orb orb1" />
         <div className="orb orb2" />
@@ -16,7 +16,7 @@ export default function HomePage() {
 
       <header className="topbar">
         <div className="brand">
-          <div className="brandIcon" aria-hidden>🌿</div>
+          <div className="brandIcon">🌿</div>
           <div className="brandText">
             <div className="brandName">LFM Agro</div>
             <div className="brandDesc">Plataforma agrícola inteligente.</div>
@@ -26,29 +26,31 @@ export default function HomePage() {
         <MobileMenu />
       </header>
 
-      <section className="homeSimple">
+      <section className="homeWrap">
         <div className="homeCard">
-          <div className="homeTag">Plataforma agrícola inteligente</div>
+          <div className="homeTag">Plataforma agrícola inteligente.</div>
 
           <h1 className="homeTitle">
             Experiência é a <span className="homeAccent">Nossa Herança</span>
           </h1>
 
+          <p className="homeText">
+            Acesso rápido para <b>Produtor</b> e <b>Técnico</b>. Menu com seções “em breve” para você ir evoluindo o app.
+          </p>
+
           <div className="homeCtas">
             <Link className="ctaPrimary" href="/produtor">
-              <span className="ctaIcon" aria-hidden>👨‍🌾</span>
+              <span aria-hidden>👨‍🌾</span>
               Entrar como Produtor
               <span className="ctaArrow" aria-hidden>→</span>
             </Link>
 
             <Link className="ctaGhost" href="/tecnico">
-              <span className="ctaIcon" aria-hidden>🧑‍🔬</span>
+              <span aria-hidden>🧑‍🔬</span>
               Entrar como Técnico
               <span className="ctaArrow" aria-hidden>→</span>
             </Link>
           </div>
-
-          <div className="homeHint">Os atalhos ficam no menu (☰).</div>
         </div>
       </section>
     </main>
