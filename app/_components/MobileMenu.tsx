@@ -3,48 +3,26 @@
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
-type Sec = {
-  title: string;
-  items?: { label: string; href: string }[];
-  href?: string;
-  soon?: boolean;
-};
+type Item = { label: string; href: string; soon?: boolean };
 
-const SECOES: Sec[] = [
-  { title: "Início", href: "/" },
-  {
-    title: "Cultivar",
-    items: [
-      { label: "Cultivares (em breve)", href: "/cultivar/cultivares" },
-      { label: "Comparador (em breve)", href: "/cultivar/comparador" },
-      { label: "Catálogo (em breve)", href: "/cultivar/catalogo" },
-    ],
-  },
-  {
-    title: "Produtor",
-    items: [
-      { label: "Painel", href: "/produtor" },
-      { label: "Mapa (grids + pontos)", href: "/produtor/mapa" },
-      { label: "Histórico (em breve)", href: "/produtor/historico" },
-    ],
-  },
-  {
-    title: "Técnico",
-    items: [
-      { label: "Painel", href: "/tecnico" },
-      { label: "Diagnóstico (em breve)", href: "/tecnico/diagnostico" },
-      { label: "Relatórios (em breve)", href: "/tecnico/relatorios" },
-    ],
-  },
-  { title: "Produtividade (em breve)", href: "/produtividade", soon: true },
-  { title: "Blog (em breve)", href: "/blog", soon: true },
-  { title: "Comercial (em breve)", href: "/comercial", soon: true },
-  { title: "Contato (em breve)", href: "/contato", soon: true },
+const ATALHOS: Item[] = [
+  { label: "Início", href: "/" },
+  { label: "Produtor", href: "/produtor" },
+  { label: "Mapa (grids + pontos)", href: "/produtor/mapa" },
+  { label: "Técnico", href: "/tecnico" },
+];
+
+const EM_BREVE: Item[] = [
+  { label: "Histórico (em breve)", href: "/produtor/historico", soon: true },
+  { label: "Clima (em breve)", href: "/clima", soon: true },
+  { label: "Preços (em breve)", href: "/precos", soon: true },
+  { label: "Produtividade (em breve)", href: "/produtividade", soon: true },
+  { label: "Comercial (em breve)", href: "/comercial", soon: true },
+  { label: "Contato (em breve)", href: "/contato", soon: true },
 ];
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -61,8 +39,6 @@ export default function MobileMenu() {
       document.body.style.overflow = "";
     };
   }, [open]);
-
-  const toggle = (t: string) => setExpanded((p) => ({ ...p, [t]: !p[t] }));
 
   return (
     <>
@@ -82,7 +58,7 @@ export default function MobileMenu() {
                 </div>
                 <div>
                   <div className="drawerName">LFM Agro</div>
-                  <div className="drawerSub">Menu</div>
+                  <div className="drawerSub">Atalhos</div>
                 </div>
               </div>
 
@@ -91,50 +67,38 @@ export default function MobileMenu() {
               </button>
             </div>
 
+            <div className="menuSectionTitle">Acessos rápidos</div>
             <nav className="navList">
-              {SECOES.map((sec) => {
-                const hasItems = !!sec.items?.length;
+              {ATALHOS.map((it) => (
+                <Link
+                  key={it.href}
+                  className="navItem premiumNavItem"
+                  href={it.href}
+                  onClick={() => setOpen(false)}
+                >
+                  <span>{it.label}</span>
+                  <span className="navArrow">→</span>
+                </Link>
+              ))}
+            </nav>
 
-                if (!hasItems) {
-                  return (
-                    <Link
-                      key={sec.title}
-                      className={`navItem premiumNavItem ${sec.soon ? "navSoon" : ""}`}
-                      href={sec.href || "/"}
-                      onClick={() => setOpen(false)}
-                    >
-                      <span>{sec.title}</span>
-                      <span className="navArrow">→</span>
-                    </Link>
-                  );
-                }
-
-                const isOpen = !!expanded[sec.title];
-
-                return (
-                  <div key={sec.title} className="navGroup">
-                    <button className="navItem premiumNavItem navGroupBtn" onClick={() => toggle(sec.title)}>
-                      <span>{sec.title}</span>
-                      <span className="navChevron">{isOpen ? "▲" : "▼"}</span>
-                    </button>
-
-                    {isOpen && (
-                      <div className="subList">
-                        {sec.items!.map((it) => (
-                          <Link
-                            key={it.href}
-                            className="subItem premiumSubItem"
-                            href={it.href}
-                            onClick={() => setOpen(false)}
-                          >
-                            {it.label}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="menuSectionTitle" style={{ marginTop: 12 }}>
+              Em breve
+            </div>
+            <nav className="navList">
+              {EM_BREVE.map((it) => (
+                <Link
+                  key={it.href}
+                  className={`navItem premiumNavItem navSoon`}
+                  href={it.href}
+                  onClick={(e) => {
+                    e.preventDefault(); // não navega por enquanto
+                  }}
+                >
+                  <span>{it.label}</span>
+                  <span className="navArrow">→</span>
+                </Link>
+              ))}
             </nav>
 
             <div className="drawerFooter">
