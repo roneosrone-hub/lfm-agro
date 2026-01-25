@@ -1,8 +1,6 @@
 import "./globals.css";
-import "leaflet/dist/leaflet.css";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "LFM Agro",
   description: "Plataforma agrícola inteligente.",
 };
