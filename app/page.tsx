@@ -5,51 +5,75 @@ import MobileMenu from "./_components/MobileMenu";
 
 export default function HomePage() {
   return (
-    <div className="lfm-wrap lfm-heroBg">
-      {/* shapes decorativas */}
-      <div className="lfm-shape lfm-shapeA" aria-hidden />
-      <div className="lfm-shape lfm-shapeB" aria-hidden />
-      <div className="lfm-shape lfm-shapeC" aria-hidden />
-      <div className="lfm-ring lfm-ringA" aria-hidden />
-      <div className="lfm-ring lfm-ringB" aria-hidden />
+    <main className="lfm">
+      {/* Fundo com shapes + movimento */}
+      <div className="lfm-bg" aria-hidden>
+        <div className="lfm-orb lfm-orbA" />
+        <div className="lfm-orb lfm-orbB" />
+        <div className="lfm-orb lfm-orbC" />
+        <div className="lfm-ring lfm-ringA" />
+        <div className="lfm-ring lfm-ringB" />
+        <div className="lfm-noise" />
+      </div>
 
-      <div className="lfm-topbar">
+      {/* Topbar */}
+      <header className="lfm-top">
         <div className="lfm-brand">
-          <div className="lfm-logo" aria-hidden>🌿</div>
-          <div>
-            <div className="lfm-brandTitle">LFM Agro</div>
-            <div className="lfm-brandSub">Plataforma agrícola inteligente.</div>
+          <div className="lfm-mark" aria-hidden>
+            🌿
+          </div>
+          <div className="lfm-brandTxt">
+            <div className="lfm-brandName">LFM Agro</div>
+            <div className="lfm-brandTag">Plataforma agrícola inteligente.</div>
           </div>
         </div>
 
-        <MobileMenu />
-      </div>
+        <div className="lfm-topRight">
+          <MobileMenu />
+        </div>
+      </header>
 
-      <div className="lfm-heroCard">
-        <div className="lfm-heroTextWrap">
-          <div className="lfm-heroKicker">Plataforma agrícola inteligente.</div>
+      {/* Conteúdo */}
+      <section className="lfm-hero">
+        <div className="lfm-heroCard">
+          <div className="lfm-kicker">Plataforma agrícola inteligente.</div>
 
-          {/* TEXTO “MEXENDO” */}
-          <h1 className="lfm-heroTitle">
-            <span className="lfm-heroLine">Experiência é a</span>
-            <span className="lfm-heroLine lfm-heroHighlight">Nossa Herança</span>
+          <h1 className="lfm-title">
+            <span className="lfm-titleLine">Experiência</span>
+            <span className="lfm-titleLine">é a</span>
+            <span className="lfm-titleLine lfm-titleAccent">Nossa Herança</span>
           </h1>
 
-          <p className="lfm-heroSub">
-            Acesso rápido para <b>Produtor</b> e <b>Técnico</b>. Menu com seções “em breve” para você ir evoluindo o app.
+          <p className="lfm-sub">
+            Acesso rápido para <b>Produtor</b> e <b>Técnico</b>. Menu com seções “em breve” para você evoluir o app com calma.
           </p>
+
+          <div className="lfm-actions">
+            <Link className="lfm-btn lfm-btnPrimary" href="/produtor">
+              👨‍🌾 <span>Entrar como Produtor</span>
+            </Link>
+
+            <Link className="lfm-btn lfm-btnGhost" href="/tecnico">
+              🧑‍🔬 <span>Entrar como Técnico</span>
+            </Link>
+          </div>
         </div>
 
-        <div className="lfm-heroActions">
-          <Link className="lfm-btn lfm-btnPrimary" href="/produtor">
-            👨‍🌾 Entrar como Produtor
-          </Link>
-
-          <Link className="lfm-btn" href="/tecnico">
-            🧑‍🔬 Entrar como Técnico
-          </Link>
-        </div>
-      </div>
-    </div>
+        {/* cartão lateral pequeno (detalhe premium) */}
+        <aside className="lfm-side">
+          <div className="lfm-miniCard">
+            <div className="lfm-miniTitle">Atalhos</div>
+            <div className="lfm-miniLinks">
+              <Link className="lfm-miniLink" href="/produtor">
+                /produtor
+              </Link>
+              <Link className="lfm-miniLink" href="/tecnico">
+                /tecnico
+              </Link>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
   );
 }
