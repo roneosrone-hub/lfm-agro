@@ -1,42 +1,53 @@
+"use client";
+
+import Link from "next/link";
 import MobileMenu from "./_components/MobileMenu";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="container">
-      <div className="topbar">
-        <div className="brand">
-          <div className="brandIcon">🌿</div>
+    <div className="lfm-wrap lfm-heroBg">
+      {/* shapes decorativas */}
+      <div className="lfm-shape lfm-shapeA" aria-hidden />
+      <div className="lfm-shape lfm-shapeB" aria-hidden />
+      <div className="lfm-shape lfm-shapeC" aria-hidden />
+      <div className="lfm-ring lfm-ringA" aria-hidden />
+      <div className="lfm-ring lfm-ringB" aria-hidden />
+
+      <div className="lfm-topbar">
+        <div className="lfm-brand">
+          <div className="lfm-logo" aria-hidden>🌿</div>
           <div>
-            <div className="brandTitle">LFM Agro</div>
-            <div className="brandSub">Plataforma agrícola inteligente.</div>
+            <div className="lfm-brandTitle">LFM Agro</div>
+            <div className="lfm-brandSub">Plataforma agrícola inteligente.</div>
           </div>
         </div>
 
         <MobileMenu />
       </div>
 
-      <div className="hero">
-        <h1 className="h1">
-          LFM <span>Agro</span>
-        </h1>
-        <p className="p">
-          Acesso rápido para Produtor e Técnico. Menu com seções “em breve” para você ir evoluindo o app.
-        </p>
+      <div className="lfm-heroCard">
+        <div className="lfm-heroTextWrap">
+          <div className="lfm-heroKicker">Plataforma agrícola inteligente.</div>
 
-        <div className="stack">
-          <a className="btn primary" href="/produtor">
-            👨‍🌾 Entrar como Produtor
-          </a>
+          {/* TEXTO “MEXENDO” */}
+          <h1 className="lfm-heroTitle">
+            <span className="lfm-heroLine">Experiência é a</span>
+            <span className="lfm-heroLine lfm-heroHighlight">Nossa Herança</span>
+          </h1>
 
-          <a className="btn" href="/tecnico">
-            🧑‍🔬 Entrar como Técnico
-          </a>
+          <p className="lfm-heroSub">
+            Acesso rápido para <b>Produtor</b> e <b>Técnico</b>. Menu com seções “em breve” para você ir evoluindo o app.
+          </p>
         </div>
 
-        <div className="card">
-          <div className="cardTitle">Atalhos</div>
-          <div className="small">/produtor</div>
-          <div className="small">/tecnico</div>
+        <div className="lfm-heroActions">
+          <Link className="lfm-btn lfm-btnPrimary" href="/produtor">
+            👨‍🌾 Entrar como Produtor
+          </Link>
+
+          <Link className="lfm-btn" href="/tecnico">
+            🧑‍🔬 Entrar como Técnico
+          </Link>
         </div>
       </div>
     </div>
