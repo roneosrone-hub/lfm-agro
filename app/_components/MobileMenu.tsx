@@ -66,7 +66,7 @@ export default function MobileMenu() {
 
   return (
     <>
-      <button className="menuBtn" onClick={() => setOpen(true)} aria-label="Abrir menu">
+      <button className="menuBtn premiumMenuBtn" onClick={() => setOpen(true)} aria-label="Abrir menu">
         ☰
       </button>
 
@@ -74,7 +74,7 @@ export default function MobileMenu() {
         <div className="drawerRoot" role="dialog" aria-modal="true">
           <div className="drawerBackdrop" onClick={() => setOpen(false)} />
 
-          <div className="drawer">
+          <div className="drawer premiumDrawer">
             <div className="drawerHeader">
               <div className="drawerBrand">
                 <div className="drawerLogo" aria-hidden>
@@ -99,7 +99,7 @@ export default function MobileMenu() {
                   return (
                     <Link
                       key={sec.title}
-                      className={`navItem ${sec.soon ? "navSoon" : ""}`}
+                      className={`navItem premiumNavItem ${sec.soon ? "navSoon" : ""}`}
                       href={sec.href || "/"}
                       onClick={() => setOpen(false)}
                     >
@@ -113,7 +113,7 @@ export default function MobileMenu() {
 
                 return (
                   <div key={sec.title} className="navGroup">
-                    <button className="navItem navGroupBtn" onClick={() => toggle(sec.title)}>
+                    <button className="navItem premiumNavItem navGroupBtn" onClick={() => toggle(sec.title)}>
                       <span>{sec.title}</span>
                       <span className="navChevron">{isOpen ? "▲" : "▼"}</span>
                     </button>
@@ -123,7 +123,7 @@ export default function MobileMenu() {
                         {sec.items!.map((it) => (
                           <Link
                             key={it.href}
-                            className="subItem"
+                            className="subItem premiumSubItem"
                             href={it.href}
                             onClick={() => setOpen(false)}
                           >
