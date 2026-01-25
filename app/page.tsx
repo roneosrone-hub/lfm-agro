@@ -5,8 +5,7 @@ import MobileMenu from "./_components/MobileMenu";
 
 export default function HomePage() {
   return (
-    <main className="appShell">
-      {/* Background corporativo */}
+    <main className="appShell premium">
       <div className="bgFx" aria-hidden="true">
         <div className="orb orb1" />
         <div className="orb orb2" />
@@ -15,7 +14,6 @@ export default function HomePage() {
         <div className="noiseFx" />
       </div>
 
-      {/* Header */}
       <header className="topbar">
         <div className="brand">
           <div className="brandIcon" aria-hidden>
@@ -30,98 +28,97 @@ export default function HomePage() {
         <MobileMenu />
       </header>
 
-      {/* Conteúdo */}
-      <section className="hero">
-        <div className="heroLeft">
-          <div className="badge">Solução completa para campo</div>
+      <section className="heroPremium">
+        <div className="heroBanner">
+          <div className="bannerGlow" aria-hidden />
+          <div className="bannerFrame" aria-hidden />
+          <div className="bannerTopline">Plataforma agrícola inteligente.</div>
 
-          <h1 className="heroTitle">
-            <span className="heroLine">Experiência</span>
-            <span className="heroLine">é a</span>
-            <span className="heroLine heroAccent">Nossa Herança</span>
+          <h1 className="titlePremium">
+            <span className="tLine">Experiência</span>
+            <span className="tLine">é a</span>
+            <span className="tLine tAccent">Nossa Herança</span>
           </h1>
 
-          <p className="heroText">
-            Acesso rápido para <b>Produtor</b> e <b>Técnico</b>. Estrutura com seções “em breve” para você ir evoluindo o app.
+          <p className="subtitlePremium">
+            Acesso rápido para <b>Produtor</b> e <b>Técnico</b>. Menu com seções “em breve” para você ir evoluindo o app.
           </p>
 
-          <div className="heroBtns">
-            <Link className="btnPrimary" href="/produtor">
-              <span className="btnIco" aria-hidden>
+          <div className="ctaRow">
+            <Link className="ctaPrimary" href="/produtor">
+              <span className="ctaIcon" aria-hidden>
                 👨‍🌾
               </span>
               Entrar como Produtor
-              <span className="btnArrow" aria-hidden>
+              <span className="ctaArrow" aria-hidden>
                 →
               </span>
             </Link>
 
-            <Link className="btnSecondary" href="/tecnico">
-              <span className="btnIco" aria-hidden>
+            <Link className="ctaGhost" href="/tecnico">
+              <span className="ctaIcon" aria-hidden>
                 🧑‍🔬
               </span>
               Entrar como Técnico
-              <span className="btnArrow" aria-hidden>
+              <span className="ctaArrow" aria-hidden>
                 →
               </span>
             </Link>
           </div>
 
-          <div className="quickRow">
-            <div className="quickItem">
-              <div className="quickK">Atalhos</div>
-              <div className="quickV">
-                <Link className="quickLink" href="/produtor">
+          <div className="miniStats">
+            <div className="miniCard">
+              <div className="miniK">Atalhos</div>
+              <div className="miniV">
+                <Link className="miniLink" href="/produtor">
                   /produtor
                 </Link>
                 <span className="dot">•</span>
-                <Link className="quickLink" href="/tecnico">
+                <Link className="miniLink" href="/tecnico">
                   /tecnico
                 </Link>
               </div>
             </div>
-            <div className="quickItem">
-              <div className="quickK">Status</div>
-              <div className="quickV">MVP em evolução</div>
+            <div className="miniCard">
+              <div className="miniK">Status</div>
+              <div className="miniV">Build MVP premium</div>
             </div>
           </div>
         </div>
 
-        <div className="heroRight">
-          <div className="panelCard">
-            <div className="panelTop">
-              <div className="panelTitle">Painel</div>
-              <div className="panelSub">Acesso rápido às áreas</div>
+        <aside className="sideCard">
+          <div className="sideHead">
+            <div className="sideTitle">Acesso rápido</div>
+            <div className="sideSub">Entradas principais</div>
+          </div>
+
+          <div className="sideGrid">
+            <Link className="sideBtn sideBtnStrong" href="/produtor">
+              <div className="sideBtnT">Produtor</div>
+              <div className="sideBtnD">Mapa, monitoramentos e histórico</div>
+            </Link>
+
+            <Link className="sideBtn" href="/tecnico">
+              <div className="sideBtnT">Técnico</div>
+              <div className="sideBtnD">Diagnóstico e planos de ação</div>
+            </Link>
+
+            <div className="sideBtn sideBtnOff">
+              <div className="sideBtnT">Clima</div>
+              <div className="sideBtnD">Em breve</div>
             </div>
 
-            <div className="panelGrid">
-              <Link className="panelBtn" href="/produtor">
-                <div className="panelBtnTitle">Produtor</div>
-                <div className="panelBtnDesc">Mapa, monitoramentos e histórico</div>
-              </Link>
-
-              <Link className="panelBtn" href="/tecnico">
-                <div className="panelBtnTitle">Técnico</div>
-                <div className="panelBtnDesc">Diagnóstico e planos de ação</div>
-              </Link>
-
-              <div className="panelBtn panelBtnDisabled">
-                <div className="panelBtnTitle">Clima</div>
-                <div className="panelBtnDesc">Em breve</div>
-              </div>
-
-              <div className="panelBtn panelBtnDisabled">
-                <div className="panelBtnTitle">Preços</div>
-                <div className="panelBtnDesc">Em breve</div>
-              </div>
+            <div className="sideBtn sideBtnOff">
+              <div className="sideBtnT">Preços</div>
+              <div className="sideBtnD">Em breve</div>
             </div>
           </div>
-        </div>
+        </aside>
       </section>
 
       <footer className="foot">
         <div className="footLine" />
-        <div className="footTxt">© {new Date().getFullYear()} LFM Agro • Build MVP</div>
+        <div className="footTxt">© {new Date().getFullYear()} LFM Agro • Interface Premium</div>
       </footer>
     </main>
   );
