@@ -200,4 +200,191 @@ body{
   width: 360px;
   height: 360px;
   border-radius: 999px;
-  background: rgba(0,0,0,.22
+  background: rgba(0,0,0,.22);
+  left: 50%;
+  transform: translateX(-50%);
+  top: 210px;
+  animation: driftB 10s ease-in-out infinite;
+}
+
+.lfm-shapeC{
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  right: -50px;
+  top: 70px;
+  animation: driftC 9s ease-in-out infinite;
+}
+
+.lfm-ring{
+  border-radius: 999px;
+  border: 2px solid rgba(122,255,152,.22);
+  background: transparent;
+}
+
+.lfm-ringA{
+  width: 240px;
+  height: 240px;
+  right: -120px;
+  bottom: 120px;
+  animation: ringPulse 7s ease-in-out infinite;
+}
+
+.lfm-ringB{
+  width: 160px;
+  height: 160px;
+  left: 40px;
+  bottom: 50px;
+  border-color: rgba(255,255,255,.12);
+  animation: ringPulse2 6.5s ease-in-out infinite;
+}
+
+/* MENU drawer (mantém o que você já tinha) */
+.lfm-drawerRoot{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.lfm-backdrop{
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+}
+
+.lfm-drawer{
+  position:absolute;
+  right: 12px;
+  top: 12px;
+  width: min(360px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow:auto;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: linear-gradient(180deg, rgba(15,22,45,.92), rgba(8,12,28,.92));
+  box-shadow: 0 22px 70px rgba(0,0,0,.55);
+  padding: 14px;
+}
+
+.lfm-drawerTop{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.lfm-drawerBrand{
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+
+.lfm-drawerLogo{
+  width: 34px;
+  height: 34px;
+  display:grid;
+  place-items:center;
+  border-radius: 12px;
+  background: rgba(122,255,152,.14);
+  border: 1px solid rgba(122,255,152,.26);
+}
+
+.lfm-drawerTitle{ font-weight: 900; }
+.lfm-drawerSub{
+  color: rgba(255,255,255,.68);
+  font-size: 13px;
+  margin-top: 1px;
+}
+
+.lfm-closeBtn{
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.20);
+  color: rgba(255,255,255,.92);
+  font-size: 18px;
+}
+
+.lfm-nav{ display:grid; gap: 10px; }
+
+.lfm-navItem{
+  width: 100%;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
+  font-weight: 900;
+}
+
+.lfm-navChevron{ opacity: .85; }
+
+.lfm-subNav{
+  display:grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-left: 10px;
+}
+
+.lfm-subItem{
+  display:block;
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.18);
+  color: rgba(255,255,255,.88);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.lfm-drawerFooter{ margin-top: 12px; }
+
+/* ANIMAÇÕES */
+@keyframes floatText{
+  0%,100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes floatText2{
+  0%,100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-8px) scale(1.01); }
+}
+
+@keyframes driftA{
+  0%,100% { transform: translate(0px,0px); }
+  50% { transform: translate(8px, -10px); }
+}
+
+@keyframes driftB{
+  0%,100% { transform: translateX(-50%) translateY(0px); }
+  50% { transform: translateX(-50%) translateY(-14px); }
+}
+
+@keyframes driftC{
+  0%,100% { transform: translate(0px,0px); }
+  50% { transform: translate(-10px, 10px); }
+}
+
+@keyframes ringPulse{
+  0%,100% { transform: scale(1); opacity: .9; }
+  50% { transform: scale(1.06); opacity: .65; }
+}
+
+@keyframes ringPulse2{
+  0%,100% { transform: scale(1); opacity: .8; }
+  50% { transform: scale(1.08); opacity: .55; }
+}
+
+/* mobile ajustes */
+@media (max-width: 520px){
+  .lfm-heroTitle{ font-size: 46px; }
+  .lfm-heroCard{ border-radius: 24px; }
+}
