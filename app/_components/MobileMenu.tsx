@@ -1,107 +1,134 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
 
-type Item = {
-  label: string;
+type Sec = {
+  title: string;
+  items?: { label: string; href: string }[];
   href?: string;
-  children?: { label: string; href: string }[];
+  soon?: boolean;
 };
+
+const SECOES: Sec[] = [
+  { title: "Início", href: "/" },
+  {
+    title: "Cultivar",
+    items: [
+      { label: "Cultivares (em breve)", href: "/cultivar/cultivares" },
+      { label: "Comparador (em breve)", href: "/cultivar/comparador" },
+      { label: "Catálogo (em breve)", href: "/cultivar/catalogo" },
+    ],
+  },
+  {
+    title: "Produtor",
+    items: [
+      { label: "Painel", href: "/produtor" },
+      { label: "Mapa (grids + pontos)", href: "/produtor/mapa" },
+      { label: "Histórico (em breve)", href: "/produtor/historico" },
+    ],
+  },
+  {
+    title: "Técnico",
+    items: [
+      { label: "Painel", href: "/tecnico" },
+      { label: "Diagnóstico (em breve)", href: "/tecnico/diagnostico" },
+      { label: "Relatórios (em breve)", href: "/tecnico/relatorios" },
+    ],
+  },
+  { title: "Produtividade (em breve)", href: "/produtividade", soon: true },
+  { title: "Blog (em breve)", href: "/blog", soon: true },
+  { title: "Comercial (em breve)", href: "/comercial", soon: true },
+  { title: "Contato (em breve)", href: "/contato", soon: true },
+];
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  const items: Item[] = useMemo(
-    () => [
-      { label: "Início", href: "/" },
-      {
-        label: "Cultivar",
-        children: [
-          { label: "Cultivares (em breve)", href: "/" },
-          { label: "Comparador (em breve)", href: "/" },
-          { label: "Catálogo (em breve)", href: "/" },
-        ],
-      },
-      {
-        label: "Produtor",
-        children: [
-          { label: "Painel", href: "/produtor" },
-          { label: "Novo monitoramento", href: "/produtor?tab=novo" },
-          { label: "Histórico", href: "/produtor?tab=historico" },
-        ],
-      },
-      {
-        label: "Técnico",
-        children: [
-          { label: "Painel", href: "/tecnico" },
-          { label: "Casos (em breve)", href: "/tecnico" },
-          { label: "Relatórios (em breve)", href: "/tecnico" },
-        ],
-      },
-      { label: "Produtividade (em breve)", href: "/" },
-      { label: "Blog (em breve)", href: "/" },
-      { label: "Comercial (em breve)", href: "/" },
-      { label: "Contato (em breve)", href: "/" },
-    ],
-    []
-  );
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
-  function toggleGroup(label: string) {
-    setExpanded((cur) => (cur === label ? null : label));
-  }
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  const toggle = (t: string) => setExpanded((p) => ({ ...p, [t]: !p[t] }));
 
   return (
     <>
-      <button className="lfm-menuBtn" aria-label="Abrir menu" onClick={() => setOpen(true)}>
+      <button className="menuBtn" onClick={() => setOpen(true)} aria-label="Abrir menu">
         ☰
       </button>
 
       {open && (
-        <div className="lfm-drawerRoot" role="dialog" aria-modal="true">
-          <div className="lfm-backdrop" onClick={() => setOpen(false)} />
+        <div className="drawerRoot" role="dialog" aria-modal="true">
+          <div className="drawerBackdrop" onClick={() => setOpen(false)} />
 
-          <aside className="lfm-drawer">
-            <div className="lfm-drawerTop">
-              <div className="lfm-drawerBrand">
-                <div className="lfm-drawerLogo">🌿</div>
+          <div className="drawer">
+            <div className="drawerHeader">
+              <div className="drawerBrand">
+                <div className="drawerLogo" aria-hidden>
+                  🌿
+                </div>
                 <div>
-                  <div className="lfm-drawerTitle">LFM Agro</div>
-                  <div className="lfm-drawerSub">Menu</div>
+                  <div className="drawerName">LFM Agro</div>
+                  <div className="drawerSub">Menu</div>
                 </div>
               </div>
 
-              <button className="lfm-closeBtn" aria-label="Fechar menu" onClick={() => setOpen(false)}>
+              <button className="drawerClose" onClick={() => setOpen(false)} aria-label="Fechar menu">
                 ✕
               </button>
             </div>
 
-            <nav className="lfm-nav">
-              {items.map((it) => {
-                if (!it.children) {
+            <nav className="navList">
+              {SECOES.map((sec) => {
+                const hasItems = !!sec.items?.length;
+
+                if (!hasItems) {
                   return (
-                    <a key={it.label} className="lfm-navItem" href={it.href || "#"} onClick={() => setOpen(false)}>
-                      <span>{it.label}</span>
-                      <span>→</span>
-                    </a>
+                    <Link
+                      key={sec.title}
+                      className={`navItem ${sec.soon ? "navSoon" : ""}`}
+                      href={sec.href || "/"}
+                      onClick={() => setOpen(false)}
+                    >
+                      <span>{sec.title}</span>
+                      <span className="navArrow">→</span>
+                    </Link>
                   );
                 }
 
-                const isOpen = expanded === it.label;
+                const isOpen = !!expanded[sec.title];
 
                 return (
-                  <div key={it.label}>
-                    <button className="lfm-navItem lfm-navToggle" onClick={() => toggleGroup(it.label)}>
-                      <span>{it.label}</span>
-                      <span>{isOpen ? "▴" : "▾"}</span>
+                  <div key={sec.title} className="navGroup">
+                    <button className="navItem navGroupBtn" onClick={() => toggle(sec.title)}>
+                      <span>{sec.title}</span>
+                      <span className="navChevron">{isOpen ? "▲" : "▼"}</span>
                     </button>
 
                     {isOpen && (
-                      <div className="lfm-subMenu">
-                        {it.children.map((c) => (
-                          <a key={c.href} className="lfm-subItem" href={c.href} onClick={() => setOpen(false)}>
-                            {c.label}
-                          </a>
+                      <div className="subList">
+                        {sec.items!.map((it) => (
+                          <Link
+                            key={it.href}
+                            className="subItem"
+                            href={it.href}
+                            onClick={() => setOpen(false)}
+                          >
+                            {it.label}
+                          </Link>
                         ))}
                       </div>
                     )}
@@ -110,24 +137,15 @@ export default function MobileMenu() {
               })}
             </nav>
 
-            <div className="lfm-ctaBox">
-              <a className="lfm-ctaBtn" href="/produtor" onClick={() => setOpen(false)}>
-                Portal do Produtor
-              </a>
-
-              <div className="lfm-social" aria-label="Redes sociais (placeholder)">
-                <a className="lfm-socialBtn" href="#" onClick={(e) => e.preventDefault()}>
-                  ⌁
-                </a>
-                <a className="lfm-socialBtn" href="#" onClick={(e) => e.preventDefault()}>
-                  ▶
-                </a>
-                <a className="lfm-socialBtn" href="#" onClick={(e) => e.preventDefault()}>
-                  f
-                </a>
+            <div className="drawerFooter">
+              <div className="footMini">Portal do Produtor</div>
+              <div className="socialRow" aria-label="Redes sociais">
+                <span className="soc">⌁</span>
+                <span className="soc">▶</span>
+                <span className="soc">f</span>
               </div>
             </div>
-          </aside>
+          </div>
         </div>
       )}
     </>
