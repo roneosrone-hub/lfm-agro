@@ -28,23 +28,16 @@ export default function HomePage() {
         <MobileMenu />
       </header>
 
-      <section className="heroPremium">
-        <div className="heroBanner">
-          <div className="bannerGlow" aria-hidden />
-          <div className="bannerFrame" aria-hidden />
-          <div className="bannerTopline">Plataforma agrícola inteligente.</div>
+      <section className="homeSimple">
+        <div className="homeCard">
+          <div className="homeTag">Plataforma agrícola inteligente</div>
 
-          <h1 className="titlePremium">
-            <span className="tLine">Experiência</span>
-            <span className="tLine">é a</span>
-            <span className="tLine tAccent">Nossa Herança</span>
+          <h1 className="homeTitle">
+            Experiência é a{" "}
+            <span className="homeAccent">Nossa Herança</span>
           </h1>
 
-          <p className="subtitlePremium">
-            Acesso rápido para <b>Produtor</b> e <b>Técnico</b>. Menu com seções “em breve” para você ir evoluindo o app.
-          </p>
-
-          <div className="ctaRow">
+          <div className="homeCtas">
             <Link className="ctaPrimary" href="/produtor">
               <span className="ctaIcon" aria-hidden>
                 👨‍🌾
@@ -66,60 +59,11 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="miniStats">
-            <div className="miniCard">
-              <div className="miniK">Atalhos</div>
-              <div className="miniV">
-                <Link className="miniLink" href="/produtor">
-                  /produtor
-                </Link>
-                <span className="dot">•</span>
-                <Link className="miniLink" href="/tecnico">
-                  /tecnico
-                </Link>
-              </div>
-            </div>
-            <div className="miniCard">
-              <div className="miniK">Status</div>
-              <div className="miniV">Build MVP premium</div>
-            </div>
+          <div className="homeHint">
+            Atalhos e seções ficam no menu (☰).
           </div>
         </div>
-
-        <aside className="sideCard">
-          <div className="sideHead">
-            <div className="sideTitle">Acesso rápido</div>
-            <div className="sideSub">Entradas principais</div>
-          </div>
-
-          <div className="sideGrid">
-            <Link className="sideBtn sideBtnStrong" href="/produtor">
-              <div className="sideBtnT">Produtor</div>
-              <div className="sideBtnD">Mapa, monitoramentos e histórico</div>
-            </Link>
-
-            <Link className="sideBtn" href="/tecnico">
-              <div className="sideBtnT">Técnico</div>
-              <div className="sideBtnD">Diagnóstico e planos de ação</div>
-            </Link>
-
-            <div className="sideBtn sideBtnOff">
-              <div className="sideBtnT">Clima</div>
-              <div className="sideBtnD">Em breve</div>
-            </div>
-
-            <div className="sideBtn sideBtnOff">
-              <div className="sideBtnT">Preços</div>
-              <div className="sideBtnD">Em breve</div>
-            </div>
-          </div>
-        </aside>
       </section>
-
-      <footer className="foot">
-        <div className="footLine" />
-        <div className="footTxt">© {new Date().getFullYear()} LFM Agro • Interface Premium</div>
-      </footer>
     </main>
   );
 }
