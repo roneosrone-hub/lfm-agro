@@ -16,9 +16,7 @@ export default function HomePage() {
 
       <header className="topbar">
         <div className="brand">
-          <div className="brandIcon" aria-hidden>
-            🌿
-          </div>
+          <div className="brandIcon" aria-hidden>🌿</div>
           <div className="brandText">
             <div className="brandName">LFM Agro</div>
             <div className="brandDesc">Plataforma agrícola inteligente.</div>
@@ -33,35 +31,24 @@ export default function HomePage() {
           <div className="homeTag">Plataforma agrícola inteligente</div>
 
           <h1 className="homeTitle">
-            Experiência é a{" "}
-            <span className="homeAccent">Nossa Herança</span>
+            Experiência é a <span className="homeAccent">Nossa Herança</span>
           </h1>
 
           <div className="homeCtas">
             <Link className="ctaPrimary" href="/produtor">
-              <span className="ctaIcon" aria-hidden>
-                👨‍🌾
-              </span>
+              <span className="ctaIcon" aria-hidden>👨‍🌾</span>
               Entrar como Produtor
-              <span className="ctaArrow" aria-hidden>
-                →
-              </span>
+              <span className="ctaArrow" aria-hidden>→</span>
             </Link>
 
             <Link className="ctaGhost" href="/tecnico">
-              <span className="ctaIcon" aria-hidden>
-                🧑‍🔬
-              </span>
+              <span className="ctaIcon" aria-hidden>🧑‍🔬</span>
               Entrar como Técnico
-              <span className="ctaArrow" aria-hidden>
-                →
-              </span>
+              <span className="ctaArrow" aria-hidden>→</span>
             </Link>
           </div>
 
-          <div className="homeHint">
-            Atalhos e seções ficam no menu (☰).
-          </div>
+          <div className="homeHint">Os atalhos ficam no menu (☰).</div>
         </div>
       </section>
     </main>
