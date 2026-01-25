@@ -1,74 +1,53 @@
-.homeSimple{
+/* === FIX: camadas do fundo NÃO podem capturar toque === */
+.bgFx, .orb, .gridFx, .noiseFx {
+  pointer-events: none !important;
+}
+
+/* === FIX: topbar e botão do menu sempre acima === */
+.topbar{
+  position: relative;
+  z-index: 20;
+}
+
+/* Botão ☰ */
+.menuBtn{
+  position: relative;
+  z-index: 9999;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Drawer sempre por cima de tudo */
+.drawerRoot{
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+}
+
+.drawerBackdrop{
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  border: 0;
+  padding: 0;
+}
+
+.premiumDrawer{
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: min(92vw, 380px);
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(12,18,28,.82);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 22px 70px rgba(0,0,0,.45);
+}
+
+/* só pra garantir que nada “invisível” em cima do menu */
+.homeCard, .homeSimple{
   position: relative;
   z-index: 2;
-  margin-top: 18px;
-  display:flex;
-  justify-content:center;
-}
-
-.homeCard{
-  width: 100%;
-  max-width: 720px;
-  border-radius: 28px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(14px);
-  padding: 22px 18px 18px;
-}
-
-.homeTag{
-  font-weight: 900;
-  letter-spacing: .16px;
-  color: rgba(255,255,255,.72);
-  font-size: 13px;
-}
-
-.homeTitle{
-  margin: 12px 0 0;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: 46px;
-  line-height: 1.05;
-}
-
-.homeAccent{
-  color: var(--green);
-  text-shadow: 0 18px 60px var(--glow);
-  position: relative;
-  animation: premiumFloat 5.2s ease-in-out infinite;
-}
-
-.homeAccent::after{
-  content:"";
-  position:absolute;
-  left:-20%;
-  top: 0;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
-  transform: skewX(-14deg);
-  animation: shimmer 4.4s ease-in-out infinite;
-  mix-blend-mode: screen;
-  pointer-events:none;
-}
-
-.homeCtas{
-  margin-top: 16px;
-  display:grid;
-  gap: 12px;
-}
-
-.homeHint{
-  margin-top: 12px;
-  color: rgba(255,255,255,.60);
-  font-size: 13px;
-  font-weight: 850;
-}
-
-.menuSectionTitle{
-  margin: 6px 0 8px;
-  font-weight: 950;
-  color: rgba(255,255,255,.70);
-  font-size: 13px;
 }
