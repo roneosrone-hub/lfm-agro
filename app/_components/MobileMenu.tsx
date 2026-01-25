@@ -34,21 +34,34 @@ export default function MobileMenu() {
 
   useEffect(() => {
     if (!open) return;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = prev;
     };
   }, [open]);
 
   return (
     <>
-      <button className="menuBtn premiumMenuBtn" onClick={() => setOpen(true)} aria-label="Abrir menu">
+      {/* BOTÃO DO MENU — z-index alto + position */}
+      <button
+        type="button"
+        className="menuBtn premiumMenuBtn"
+        onClick={() => setOpen(true)}
+        aria-label="Abrir menu"
+      >
         ☰
       </button>
 
       {open && (
         <div className="drawerRoot" role="dialog" aria-modal="true">
-          <div className="drawerBackdrop" onClick={() => setOpen(false)} />
+          {/* fundo clicável */}
+          <button
+            type="button"
+            className="drawerBackdrop"
+            onClick={() => setOpen(false)}
+            aria-label="Fechar menu"
+          />
 
           <div className="drawer premiumDrawer">
             <div className="drawerHeader">
@@ -62,12 +75,18 @@ export default function MobileMenu() {
                 </div>
               </div>
 
-              <button className="drawerClose" onClick={() => setOpen(false)} aria-label="Fechar menu">
+              <button
+                type="button"
+                className="drawerClose"
+                onClick={() => setOpen(false)}
+                aria-label="Fechar menu"
+              >
                 ✕
               </button>
             </div>
 
             <div className="menuSectionTitle">Acessos rápidos</div>
+
             <nav className="navList">
               {ATALHOS.map((it) => (
                 <Link
@@ -85,19 +104,18 @@ export default function MobileMenu() {
             <div className="menuSectionTitle" style={{ marginTop: 12 }}>
               Em breve
             </div>
+
             <nav className="navList">
               {EM_BREVE.map((it) => (
-                <Link
+                <a
                   key={it.href}
-                  className={`navItem premiumNavItem navSoon`}
-                  href={it.href}
-                  onClick={(e) => {
-                    e.preventDefault(); // não navega por enquanto
-                  }}
+                  className="navItem premiumNavItem navSoon"
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
                 >
                   <span>{it.label}</span>
                   <span className="navArrow">→</span>
-                </Link>
+                </a>
               ))}
             </nav>
 
