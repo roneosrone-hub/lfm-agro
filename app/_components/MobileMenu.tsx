@@ -1,4 +1,3 @@
-// app/_components/MobileMenu.tsx
 "use client";
 
 import React, { useMemo, useState } from "react";
@@ -16,6 +15,14 @@ export default function MobileMenu() {
   const items: Item[] = useMemo(
     () => [
       { label: "Início", href: "/" },
+      {
+        label: "Cultivar",
+        children: [
+          { label: "Cultivares (em breve)", href: "/" },
+          { label: "Comparador (em breve)", href: "/" },
+          { label: "Catálogo (em breve)", href: "/" },
+        ],
+      },
       {
         label: "Produtor",
         children: [
@@ -46,11 +53,7 @@ export default function MobileMenu() {
 
   return (
     <>
-      <button
-        className="lfm-menuBtn"
-        aria-label="Abrir menu"
-        onClick={() => setOpen(true)}
-      >
+      <button className="lfm-menuBtn" aria-label="Abrir menu" onClick={() => setOpen(true)}>
         ☰
       </button>
 
@@ -61,37 +64,25 @@ export default function MobileMenu() {
           <aside className="lfm-drawer">
             <div className="lfm-drawerTop">
               <div className="lfm-drawerBrand">
-                <div className="lfm-drawerLogo" aria-hidden>
-                  🌿
-                </div>
+                <div className="lfm-drawerLogo">🌿</div>
                 <div>
                   <div className="lfm-drawerTitle">LFM Agro</div>
                   <div className="lfm-drawerSub">Menu</div>
                 </div>
               </div>
 
-              <button
-                className="lfm-closeBtn"
-                aria-label="Fechar menu"
-                onClick={() => setOpen(false)}
-              >
+              <button className="lfm-closeBtn" aria-label="Fechar menu" onClick={() => setOpen(false)}>
                 ✕
               </button>
             </div>
 
             <nav className="lfm-nav">
               {items.map((it) => {
-                const hasChildren = !!it.children?.length;
-
-                if (!hasChildren) {
+                if (!it.children) {
                   return (
-                    <a
-                      key={it.label}
-                      className="lfm-navItem"
-                      href={it.href || "#"}
-                      onClick={() => setOpen(false)}
-                    >
-                      {it.label}
+                    <a key={it.label} className="lfm-navItem" href={it.href || "#"} onClick={() => setOpen(false)}>
+                      <span>{it.label}</span>
+                      <span>→</span>
                     </a>
                   );
                 }
@@ -99,27 +90,16 @@ export default function MobileMenu() {
                 const isOpen = expanded === it.label;
 
                 return (
-                  <div key={it.label} className="lfm-navGroup">
-                    <button
-                      className="lfm-navItem lfm-navToggle"
-                      onClick={() => toggleGroup(it.label)}
-                      aria-expanded={isOpen}
-                    >
+                  <div key={it.label}>
+                    <button className="lfm-navItem lfm-navToggle" onClick={() => toggleGroup(it.label)}>
                       <span>{it.label}</span>
-                      <span className="lfm-caret" aria-hidden>
-                        {isOpen ? "▴" : "▾"}
-                      </span>
+                      <span>{isOpen ? "▴" : "▾"}</span>
                     </button>
 
                     {isOpen && (
                       <div className="lfm-subMenu">
-                        {it.children!.map((c) => (
-                          <a
-                            key={c.href}
-                            className="lfm-subItem"
-                            href={c.href}
-                            onClick={() => setOpen(false)}
-                          >
+                        {it.children.map((c) => (
+                          <a key={c.href} className="lfm-subItem" href={c.href} onClick={() => setOpen(false)}>
                             {c.label}
                           </a>
                         ))}
@@ -135,14 +115,14 @@ export default function MobileMenu() {
                 Portal do Produtor
               </a>
 
-              <div className="lfm-social">
-                <a className="lfm-socialBtn" href="#" aria-label="Instagram">
+              <div className="lfm-social" aria-label="Redes sociais (placeholder)">
+                <a className="lfm-socialBtn" href="#" onClick={(e) => e.preventDefault()}>
                   ⌁
                 </a>
-                <a className="lfm-socialBtn" href="#" aria-label="YouTube">
+                <a className="lfm-socialBtn" href="#" onClick={(e) => e.preventDefault()}>
                   ▶
                 </a>
-                <a className="lfm-socialBtn" href="#" aria-label="Facebook">
+                <a className="lfm-socialBtn" href="#" onClick={(e) => e.preventDefault()}>
                   f
                 </a>
               </div>
