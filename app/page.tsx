@@ -6,7 +6,7 @@ import MobileMenu from "./_components/MobileMenu";
 export default function HomePage() {
   return (
     <main className="lfm">
-      {/* Fundo com shapes + movimento */}
+      {/* Fundo */}
       <div className="lfm-bg" aria-hidden>
         <div className="lfm-orb lfm-orbA" />
         <div className="lfm-orb lfm-orbB" />
@@ -33,9 +33,12 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Conteúdo */}
+      {/* Hero */}
       <section className="lfm-hero">
         <div className="lfm-heroCard">
+          {/* brilho animado tipo banner */}
+          <div className="lfm-sheen" aria-hidden />
+
           <div className="lfm-kicker">Plataforma agrícola inteligente.</div>
 
           <h1 className="lfm-title">
@@ -45,7 +48,8 @@ export default function HomePage() {
           </h1>
 
           <p className="lfm-sub">
-            Acesso rápido para <b>Produtor</b> e <b>Técnico</b>. Menu com seções “em breve” para você evoluir o app com calma.
+            Acesso rápido para <b>Produtor</b> e <b>Técnico</b>. Menu com seções “em breve”
+            para você evoluir o app com calma.
           </p>
 
           <div className="lfm-actions">
@@ -57,22 +61,12 @@ export default function HomePage() {
               🧑‍🔬 <span>Entrar como Técnico</span>
             </Link>
           </div>
-        </div>
 
-        {/* cartão lateral pequeno (detalhe premium) */}
-        <aside className="lfm-side">
-          <div className="lfm-miniCard">
-            <div className="lfm-miniTitle">Atalhos</div>
-            <div className="lfm-miniLinks">
-              <Link className="lfm-miniLink" href="/produtor">
-                /produtor
-              </Link>
-              <Link className="lfm-miniLink" href="/tecnico">
-                /tecnico
-              </Link>
-            </div>
+          <div className="lfm-foot">
+            <span className="lfm-footLabel">Atalhos</span>
+            <span className="lfm-footLinks">/produtor • /tecnico</span>
           </div>
-        </aside>
+        </div>
       </section>
     </main>
   );
