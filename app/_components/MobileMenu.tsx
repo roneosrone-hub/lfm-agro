@@ -3,31 +3,27 @@
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
-type Item = { label: string; href: string; soon?: boolean };
-
-const ATALHOS: Item[] = [
+const ATALHOS = [
   { label: "Início", href: "/" },
   { label: "Produtor", href: "/produtor" },
   { label: "Mapa (grids + pontos)", href: "/produtor/mapa" },
   { label: "Técnico", href: "/tecnico" },
 ];
 
-const EM_BREVE: Item[] = [
-  { label: "Histórico (em breve)", href: "/produtor/historico", soon: true },
-  { label: "Clima (em breve)", href: "/clima", soon: true },
-  { label: "Preços (em breve)", href: "/precos", soon: true },
-  { label: "Produtividade (em breve)", href: "/produtividade", soon: true },
-  { label: "Comercial (em breve)", href: "/comercial", soon: true },
-  { label: "Contato (em breve)", href: "/contato", soon: true },
+const EM_BREVE = [
+  { label: "Histórico (em breve)", href: "#" },
+  { label: "Clima (em breve)", href: "#" },
+  { label: "Preços (em breve)", href: "#" },
+  { label: "Produtividade (em breve)", href: "#" },
+  { label: "Comercial (em breve)", href: "#" },
+  { label: "Contato (em breve)", href: "#" },
 ];
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -43,58 +39,32 @@ export default function MobileMenu() {
 
   return (
     <>
-      {/* BOTÃO DO MENU — z-index alto + position */}
-      <button
-        type="button"
-        className="menuBtn premiumMenuBtn"
-        onClick={() => setOpen(true)}
-        aria-label="Abrir menu"
-      >
+      <button className="menuBtn" onClick={() => setOpen(true)} aria-label="Abrir menu">
         ☰
       </button>
 
       {open && (
         <div className="drawerRoot" role="dialog" aria-modal="true">
-          {/* fundo clicável */}
-          <button
-            type="button"
-            className="drawerBackdrop"
-            onClick={() => setOpen(false)}
-            aria-label="Fechar menu"
-          />
-
-          <div className="drawer premiumDrawer">
+          <button className="drawerBackdrop" onClick={() => setOpen(false)} aria-label="Fechar menu" />
+          <div className="drawer">
             <div className="drawerHeader">
               <div className="drawerBrand">
-                <div className="drawerLogo" aria-hidden>
-                  🌿
-                </div>
+                <div className="drawerLogo">🌿</div>
                 <div>
                   <div className="drawerName">LFM Agro</div>
                   <div className="drawerSub">Atalhos</div>
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="drawerClose"
-                onClick={() => setOpen(false)}
-                aria-label="Fechar menu"
-              >
+              <button className="drawerClose" onClick={() => setOpen(false)} aria-label="Fechar">
                 ✕
               </button>
             </div>
 
             <div className="menuSectionTitle">Acessos rápidos</div>
-
             <nav className="navList">
               {ATALHOS.map((it) => (
-                <Link
-                  key={it.href}
-                  className="navItem premiumNavItem"
-                  href={it.href}
-                  onClick={() => setOpen(false)}
-                >
+                <Link key={it.href} className="navItem" href={it.href} onClick={() => setOpen(false)}>
                   <span>{it.label}</span>
                   <span className="navArrow">→</span>
                 </Link>
@@ -104,13 +74,12 @@ export default function MobileMenu() {
             <div className="menuSectionTitle" style={{ marginTop: 12 }}>
               Em breve
             </div>
-
             <nav className="navList">
               {EM_BREVE.map((it) => (
                 <a
-                  key={it.href}
-                  className="navItem premiumNavItem navSoon"
-                  href="#"
+                  key={it.label}
+                  className="navItem navSoon"
+                  href={it.href}
                   onClick={(e) => e.preventDefault()}
                 >
                   <span>{it.label}</span>
@@ -121,7 +90,7 @@ export default function MobileMenu() {
 
             <div className="drawerFooter">
               <div className="footMini">Portal do Produtor</div>
-              <div className="socialRow" aria-label="Redes sociais">
+              <div className="socialRow">
                 <span className="soc">⌁</span>
                 <span className="soc">▶</span>
                 <span className="soc">f</span>
