@@ -1,21 +1,18 @@
 import "./globals.css";
-import "leaflet/dist/leaflet.css";
-import "leaflet-draw/dist/leaflet.draw.css";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+export const metadata = {
   title: "LFM Agro",
-  description: "Plataforma agrícola inteligente.",
+  description: "Plataforma LFM Agro",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
-      <body>{children}</body>
+    <html lang="pt-br">
+      <body>
+        <div className="lfm-shell">
+          <div className="lfm-wrap">{children}</div>
+        </div>
+      </body>
     </html>
   );
 }
