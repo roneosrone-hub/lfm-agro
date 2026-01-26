@@ -1,15 +1,133 @@
-@import "leaflet/dist/leaflet.css";
-
+/* ===== Reset básico ===== */
 * { box-sizing: border-box; }
-
-html, body {
-  height: 100%;
+html, body { height: 100%; }
+body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color: rgba(255,255,255,.92);
+  background: radial-gradient(1200px 800px at 20% 10%, rgba(88, 255, 182, .10), transparent 55%),
+              radial-gradient(900px 700px at 90% 20%, rgba(118, 167, 255, .10), transparent 55%),
+              linear-gradient(180deg, #071018 0%, #050814 100%);
 }
 
+/* Evita "seleção azul" feia no mobile */
+button { -webkit-tap-highlight-color: transparent; }
+
+/* ==========================================
+   IMPORTANTE: Leaflet NÃO pode brigar com CSS
+   ========================================== */
+
+/* Reset global costuma quebrar o Leaflet por causa de:
+   img { max-width: 100% } (muito comum) -> quebra tiles */
+img { max-width: 100%; height: auto; }
+.leaflet-container img { max-width: none !important; height: auto; }
+
+/* Leaflet precisa de altura/posicionamento corretos */
 .leaflet-container {
-  height: 100%;
   width: 100%;
-  z-index: 0;
+  height: 100%;
+  font: inherit;
+  outline: 0;
+}
+
+/* Evita que botões globais afetem controles do Leaflet */
+.leaflet-control button,
+.leaflet-bar a {
+  font: inherit;
+}
+
+/* ==========================================
+   Seu layout (mantive o que você mandou)
+   ========================================== */
+
+.appShell{
+  min-height: 100vh;
+  padding: 18px 14px 30px;
+}
+
+/* ===== Background FX (não pode bloquear cliques!) ===== */
+.bgFx { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.orb { position: absolute; border-radius: 999px; filter: blur(40px); opacity: .35; }
+.orb1 { width: 380px; height: 380px; left: -120px; top: -120px; background: #3dffb3; }
+.orb2 { width: 420px; height: 420px; right: -160px; top: 40px; background: #56a6ff; }
+.orb3 { width: 520px; height: 520px; left: 10%; bottom: -220px; background: #7bff74; opacity: .18; }
+.gridFx{
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: .12;
+  transform: translateZ(0);
+}
+.noiseFx{
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.25'/%3E%3C/svg%3E");
+  opacity: .06;
+}
+
+/* ===== Topbar ===== */
+.topbar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 10px 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(10, 14, 22, .55);
+  backdrop-filter: blur(14px);
+}
+
+.brand{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.brandIcon{
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+}
+.brandName{ font-weight: 700; line-height: 1.1; }
+.brandDesc{ font-size: 12px; opacity: .75; }
+
+/* ===== Botão menu ===== */
+.menuBtn{
+  width: 44px; height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.92);
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 9999;
+  position: relative;
+}
+
+/* ===== Drawer ===== */
+.drawerRoot{ position: fixed; inset: 0; z-index: 10000; }
+.drawerBackdrop{
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.38);
+  border: 0; padding: 0;
+}
+.drawer{
+  position: absolute;
+  top: 14px; right: 14px;
+  width: min(92vw, 380px);
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(10, 14, 22, .82);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 22px 70px rgba(0,0,0,.55);
+  padding: 14px;
 }
