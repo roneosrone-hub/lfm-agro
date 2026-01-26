@@ -2,7 +2,7 @@ import dynamic from "next/dynamic";
 
 export const dynamic = "force-dynamic";
 
-const Mapa = dynamic(() => import("../produtor/produtor-mapa"), {
+const Mapa = dynamic(() => import("../produtor/mapa/page"), {
   ssr: false,
 });
 
