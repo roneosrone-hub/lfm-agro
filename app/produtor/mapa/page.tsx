@@ -1,11 +1,11 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 
-/* ✅ Corrige marker no Next (senão some) */
+/* Corrige marker no Next */
 const DefaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -18,14 +18,10 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 type LatLng = { lat: number; lng: number };
-
-const LS_VIEW_KEY = "lfm_map_view_v2";
+const LS_VIEW_KEY = "lfm_map_view_v3";
 
 function parseCoords(input: string): LatLng | null {
-  const cleaned = input
-    .replace(/[a-zA-Z:]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const cleaned = input.replace(/[a-zA-Z:]/g, " ").replace(/\s+/g, " ").trim();
   const parts = cleaned.split(/[ ,]+/).filter(Boolean);
   if (parts.length < 2) return null;
   const lat = Number(parts[0]);
@@ -41,7 +37,9 @@ async function nominatimSearch(q: string): Promise<LatLng | null> {
     encodeURIComponent(q);
 
   const res = await fetch(url, {
-    headers: { "Accept-Language": "pt-BR,pt;q=0.9" },
+    headers: {
+      "Accept-Language": "pt-BR,pt;q=0.9",
+    },
   });
   if (!res.ok) return null;
   const data = (await res.json()) as any[];
@@ -79,18 +77,57 @@ function SaveView() {
   return null;
 }
 
+/** TileLayer com fallback: se satélite falhar, volta pro mapa e mostra aviso */
+function SmartTiles({
+  base,
+  onSatFail,
+}: {
+  base: "map" | "sat";
+  onSatFail: (msg: string) => void;
+}) {
+  const [key, setKey] = useState(0);
+
+  // OSM (estável)
+  const OSM = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+  // SAT (Esri pode bloquear; por isso tem fallback)
+  const ESRI =
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+
+  // Detecta tile error e faz fallback
+  const tileRef = useRef<any>(null);
+
+  useEffect(() => {
+    setKey((k) => k + 1);
+  }, [base]);
+
+  if (base === "map") {
+    return <TileLayer key={key} url={OSM} attribution="&copy; OpenStreetMap" maxZoom={19} />;
+  }
+
+  return (
+    <TileLayer
+      key={key}
+      url={ESRI}
+      attribution="&copy; Esri"
+      maxZoom={19}
+      ref={tileRef}
+      eventHandlers={{
+        tileerror: () => {
+          onSatFail("Satélite bloqueado/indisponível. Voltei pro mapa (OSM).");
+        },
+      }}
+    />
+  );
+}
+
 export default function MapaProdutor() {
   const [base, setBase] = useState<"map" | "sat">("map");
-
   const [myPos, setMyPos] = useState<LatLng | null>(null);
   const [fly, setFly] = useState<LatLng | null>(null);
 
-  // ✅ Campo “cidade” (buscar lugar)
   const [placeText, setPlaceText] = useState("Campo Verde - MT");
-
-  // ✅ Campo coordenadas
   const [coordText, setCoordText] = useState("");
-
   const [busy, setBusy] = useState<null | "gps" | "search">(null);
   const [msg, setMsg] = useState("");
 
@@ -109,13 +146,7 @@ export default function MapaProdutor() {
     }
   }, []);
 
-  // URLs
-  const mapUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const satUrl =
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-
-  // “Glass UI”
-  const panelStyle: React.CSSProperties = {
+  const panel: React.CSSProperties = {
     borderRadius: 18,
     border: "1px solid rgba(255,255,255,.14)",
     background: "rgba(10, 14, 22, .62)",
@@ -123,7 +154,7 @@ export default function MapaProdutor() {
     boxShadow: "0 22px 70px rgba(0,0,0,.55)",
   };
 
-  const btnStyle: React.CSSProperties = {
+  const btn: React.CSSProperties = {
     padding: "10px 12px",
     borderRadius: 14,
     border: "1px solid rgba(255,255,255,.14)",
@@ -132,12 +163,12 @@ export default function MapaProdutor() {
     fontWeight: 800,
   };
 
-  const btnActive: React.CSSProperties = {
-    ...btnStyle,
+  const btnOn: React.CSSProperties = {
+    ...btn,
     background: "linear-gradient(180deg, rgba(104,243,177,.22), rgba(104,243,177,.08))",
   };
 
-  const inputStyle: React.CSSProperties = {
+  const input: React.CSSProperties = {
     width: "100%",
     padding: "10px 12px",
     borderRadius: 14,
@@ -178,13 +209,12 @@ export default function MapaProdutor() {
 
     setMsg("");
     setBusy("search");
-
     try {
       const found = await nominatimSearch(q);
-      if (!found) setMsg("Não encontrei esse lugar. Tente: 'Campo Verde MT'.");
+      if (!found) setMsg("Não encontrei. Tente: 'Campo Verde MT'.");
       else setFly(found);
     } catch {
-      setMsg("Falha na busca (sem internet ou bloqueio).");
+      setMsg("Falha na busca (sem internet/bloqueio).");
     } finally {
       setBusy(null);
     }
@@ -200,12 +230,16 @@ export default function MapaProdutor() {
     setFly(p);
   }
 
+  function onSatFail(m: string) {
+    setMsg(m);
+    setBase("map");
+  }
+
   return (
     <div style={{ minHeight: "100vh", padding: 14 }}>
-      {/* Topo */}
       <div
         style={{
-          ...panelStyle,
+          ...panel,
           padding: 12,
           display: "flex",
           alignItems: "center",
@@ -235,57 +269,54 @@ export default function MapaProdutor() {
               Mapa de Monitoramento
             </div>
             <div style={{ fontSize: 12, opacity: 0.75 }}>
-              satélite • meu local • busca • coordenadas
+              mapa • satélite • meu local • busca • coordenadas
             </div>
           </div>
         </div>
 
-        <button style={btnStyle} onClick={() => (window.location.href = "/produtor")}>
+        <button style={btn} onClick={() => (window.location.href = "/produtor")}>
           Voltar
         </button>
       </div>
 
-      {/* Controles */}
-      <div style={{ ...panelStyle, marginTop: 12, padding: 12 }}>
+      <div style={{ ...panel, marginTop: 12, padding: 12 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button style={base === "map" ? btnActive : btnStyle} onClick={() => setBase("map")}>
+          <button style={base === "map" ? btnOn : btn} onClick={() => setBase("map")}>
             🗺️ Mapa
           </button>
-          <button style={base === "sat" ? btnActive : btnStyle} onClick={() => setBase("sat")}>
+          <button style={base === "sat" ? btnOn : btn} onClick={() => setBase("sat")}>
             🛰️ Satélite
           </button>
-          <button style={btnStyle} onClick={onMyLocation}>
+          <button style={btn} onClick={onMyLocation}>
             📍 {busy === "gps" ? "Localizando..." : "Meu local"}
           </button>
         </div>
 
-        {/* Buscar cidade */}
         <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
           <div style={{ fontSize: 12, opacity: 0.78 }}>Pesquisar cidade/endereço</div>
           <div style={{ display: "flex", gap: 10 }}>
             <input
-              style={inputStyle}
+              style={input}
               value={placeText}
               onChange={(e) => setPlaceText(e.target.value)}
               placeholder="Ex: Campo Verde - MT"
             />
-            <button style={btnStyle} onClick={onSearchPlace} disabled={busy === "search"}>
+            <button style={btn} onClick={onSearchPlace} disabled={busy === "search"}>
               {busy === "search" ? "Buscando..." : "Ir"}
             </button>
           </div>
         </div>
 
-        {/* Coordenadas */}
         <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
           <div style={{ fontSize: 12, opacity: 0.78 }}>Ir por coordenadas (lat,lng)</div>
           <div style={{ display: "flex", gap: 10 }}>
             <input
-              style={inputStyle}
+              style={input}
               value={coordText}
               onChange={(e) => setCoordText(e.target.value)}
               placeholder="Ex: -15.601,-56.097"
             />
-            <button style={btnStyle} onClick={onGoCoords}>
+            <button style={btn} onClick={onGoCoords}>
               Ir
             </button>
           </div>
@@ -298,10 +329,9 @@ export default function MapaProdutor() {
         )}
       </div>
 
-      {/* Mapa */}
       <div
         style={{
-          ...panelStyle,
+          ...panel,
           marginTop: 12,
           height: "70vh",
           minHeight: 440,
@@ -315,12 +345,7 @@ export default function MapaProdutor() {
           style={{ width: "100%", height: "100%" }}
           zoomControl={true}
         >
-          {base === "map" ? (
-            <TileLayer url={mapUrl} attribution="&copy; OpenStreetMap" maxZoom={19} />
-          ) : (
-            <TileLayer url={satUrl} attribution="&copy; Esri" maxZoom={19} />
-          )}
-
+          <SmartTiles base={base} onSatFail={onSatFail} />
           <SaveView />
           <FlyTo target={fly} zoom={16} />
 
