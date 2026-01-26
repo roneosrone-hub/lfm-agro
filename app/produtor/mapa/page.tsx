@@ -1,19 +1,11 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-
+import React, { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  useMap,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 
-// ✅ Corrige ícone do marker no Next (senão some)
+/* ✅ Corrige marker no Next (senão some) */
 const DefaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -27,14 +19,9 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 type LatLng = { lat: number; lng: number };
 
-const LS_VIEW_KEY = "lfm_map_view_v1";
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
+const LS_VIEW_KEY = "lfm_map_view_v2";
 
 function parseCoords(input: string): LatLng | null {
-  // aceita: "-15.6,-56.1" | "-15.6 -56.1" | "lat:-15.6 lng:-56.1"
   const cleaned = input
     .replace(/[a-zA-Z:]/g, " ")
     .replace(/\s+/g, " ")
@@ -54,10 +41,7 @@ async function nominatimSearch(q: string): Promise<LatLng | null> {
     encodeURIComponent(q);
 
   const res = await fetch(url, {
-    headers: {
-      // Nominatim recomenda User-Agent / Referer; no browser não dá setar User-Agent
-      "Accept-Language": "pt-BR,pt;q=0.9",
-    },
+    headers: { "Accept-Language": "pt-BR,pt;q=0.9" },
   });
   if (!res.ok) return null;
   const data = (await res.json()) as any[];
@@ -72,78 +56,96 @@ function FlyTo({ target, zoom }: { target: LatLng | null; zoom?: number }) {
   const map = useMap();
   useEffect(() => {
     if (!target) return;
-    const z = zoom ?? map.getZoom();
-    map.flyTo([target.lat, target.lng], z, { duration: 0.8 });
+    map.flyTo([target.lat, target.lng], zoom ?? map.getZoom(), { duration: 0.85 });
   }, [target, zoom, map]);
   return null;
 }
 
-function PersistView() {
+function SaveView() {
   const map = useMap();
-  useMapEvents({
-    moveend() {
+  useEffect(() => {
+    const save = () => {
       const c = map.getCenter();
       const z = map.getZoom();
-      localStorage.setItem(
-        LS_VIEW_KEY,
-        JSON.stringify({ lat: c.lat, lng: c.lng, zoom: z })
-      );
-    },
-    zoomend() {
-      const c = map.getCenter();
-      const z = map.getZoom();
-      localStorage.setItem(
-        LS_VIEW_KEY,
-        JSON.stringify({ lat: c.lat, lng: c.lng, zoom: z })
-      );
-    },
-  });
+      localStorage.setItem(LS_VIEW_KEY, JSON.stringify({ lat: c.lat, lng: c.lng, zoom: z }));
+    };
+    map.on("moveend", save);
+    map.on("zoomend", save);
+    return () => {
+      map.off("moveend", save);
+      map.off("zoomend", save);
+    };
+  }, [map]);
   return null;
 }
 
-export default function PageMapaProdutor() {
+export default function MapaProdutor() {
   const [base, setBase] = useState<"map" | "sat">("map");
 
   const [myPos, setMyPos] = useState<LatLng | null>(null);
   const [fly, setFly] = useState<LatLng | null>(null);
 
-  const [searchText, setSearchText] = useState("");
+  // ✅ Campo “cidade” (buscar lugar)
+  const [placeText, setPlaceText] = useState("Campo Verde - MT");
+
+  // ✅ Campo coordenadas
   const [coordText, setCoordText] = useState("");
 
-  const [busy, setBusy] = useState<null | "search" | "gps">(null);
-  const [msg, setMsg] = useState<string>("");
+  const [busy, setBusy] = useState<null | "gps" | "search">(null);
+  const [msg, setMsg] = useState("");
 
-  // view inicial (salva e restaura)
   const initial = useMemo(() => {
     try {
       const raw = localStorage.getItem(LS_VIEW_KEY);
-      if (!raw) return { lat: -15.601, lng: -56.097, zoom: 12 }; // Cuiabá default
-      const parsed = JSON.parse(raw);
+      if (!raw) return { lat: -15.601, lng: -56.097, zoom: 12 };
+      const p = JSON.parse(raw);
       return {
-        lat: clamp(Number(parsed.lat), -90, 90),
-        lng: clamp(Number(parsed.lng), -180, 180),
-        zoom: clamp(Number(parsed.zoom), 2, 19),
+        lat: Number(p.lat) || -15.601,
+        lng: Number(p.lng) || -56.097,
+        zoom: Number(p.zoom) || 12,
       };
     } catch {
       return { lat: -15.601, lng: -56.097, zoom: 12 };
     }
   }, []);
 
-  // estilos “profissionais” sem depender do seu CSS atual
-  const styles = useMemo(() => {
-    const btn =
-      "px-3 py-2 rounded-xl border border-white/15 bg-white/10 backdrop-blur-md text-white/90 font-semibold shadow-[0_18px_50px_rgba(0,0,0,.35)] active:scale-[.98] transition";
-    const panel =
-      "rounded-2xl border border-white/15 bg-[#0a0e16]/65 backdrop-blur-xl shadow-[0_22px_70px_rgba(0,0,0,.55)]";
-    const input =
-      "w-full px-3 py-2 rounded-xl border border-white/15 bg-white/5 text-white/90 outline-none focus:border-white/25";
-    return { btn, panel, input };
-  }, []);
+  // URLs
+  const mapUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const satUrl =
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
-  function goBack() {
-    // volta para /produtor
-    window.location.href = "/produtor";
-  }
+  // “Glass UI”
+  const panelStyle: React.CSSProperties = {
+    borderRadius: 18,
+    border: "1px solid rgba(255,255,255,.14)",
+    background: "rgba(10, 14, 22, .62)",
+    backdropFilter: "blur(16px)",
+    boxShadow: "0 22px 70px rgba(0,0,0,.55)",
+  };
+
+  const btnStyle: React.CSSProperties = {
+    padding: "10px 12px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,.14)",
+    background: "rgba(255,255,255,.08)",
+    color: "rgba(255,255,255,.92)",
+    fontWeight: 800,
+  };
+
+  const btnActive: React.CSSProperties = {
+    ...btnStyle,
+    background: "linear-gradient(180deg, rgba(104,243,177,.22), rgba(104,243,177,.08))",
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,.14)",
+    background: "rgba(255,255,255,.06)",
+    color: "rgba(255,255,255,.92)",
+    outline: "none",
+  };
 
   async function onMyLocation() {
     setMsg("");
@@ -151,75 +153,67 @@ export default function PageMapaProdutor() {
 
     if (!navigator.geolocation) {
       setBusy(null);
-      setMsg("GPS não disponível neste aparelho/navegador.");
+      setMsg("GPS não disponível.");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const target = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setMyPos(target);
-        setFly(target);
+        const t = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setMyPos(t);
+        setFly(t);
         setBusy(null);
       },
-      (err) => {
+      () => {
         setBusy(null);
-        if (err.code === err.PERMISSION_DENIED)
-          setMsg("Permissão de localização negada.");
-        else setMsg("Não consegui pegar seu local agora. Tente novamente.");
+        setMsg("Sem permissão de localização ou GPS indisponível.");
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 5000 }
     );
   }
 
   async function onSearchPlace() {
-    const q = searchText.trim();
+    const q = placeText.trim();
     if (!q) return;
+
     setMsg("");
     setBusy("search");
+
     try {
       const found = await nominatimSearch(q);
-      if (!found) {
-        setMsg("Não achei esse lugar. Tente: 'Campo Verde MT' ou 'Cuiabá'.");
-      } else {
-        setFly(found);
-      }
+      if (!found) setMsg("Não encontrei esse lugar. Tente: 'Campo Verde MT'.");
+      else setFly(found);
     } catch {
-      setMsg("Falha na busca. Sem internet ou bloqueio do serviço.");
+      setMsg("Falha na busca (sem internet ou bloqueio).");
     } finally {
       setBusy(null);
     }
   }
 
   function onGoCoords() {
-    const parsed = parseCoords(coordText);
-    if (!parsed) {
+    const p = parseCoords(coordText);
+    if (!p) {
       setMsg("Coordenadas inválidas. Ex: -15.601,-56.097");
       return;
     }
     setMsg("");
-    setFly(parsed);
+    setFly(p);
   }
-
-  const mapUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const satUrl =
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
   return (
     <div style={{ minHeight: "100vh", padding: 14 }}>
       {/* Topo */}
       <div
-        className={styles.panel}
         style={{
+          ...panelStyle,
+          padding: 12,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 12,
-          padding: 12,
-          borderRadius: 18,
           position: "sticky",
           top: 10,
-          zIndex: 30,
+          zIndex: 20,
         }}
       >
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -228,141 +222,91 @@ export default function PageMapaProdutor() {
               width: 40,
               height: 40,
               borderRadius: 14,
-              border: "1px solid rgba(255,255,255,.15)",
+              border: "1px solid rgba(255,255,255,.14)",
               background: "rgba(255,255,255,.08)",
               display: "grid",
               placeItems: "center",
             }}
           >
-            🌿
+            🗺️
           </div>
           <div>
-            <div style={{ fontWeight: 900, lineHeight: 1.1 }}>Mapa</div>
+            <div style={{ fontWeight: 900, lineHeight: 1.1, fontSize: 16 }}>
+              Mapa de Monitoramento
+            </div>
             <div style={{ fontSize: 12, opacity: 0.75 }}>
-              buscar • coordenadas • satélite • meu local
+              satélite • meu local • busca • coordenadas
             </div>
           </div>
         </div>
 
-        <button onClick={goBack} className={styles.btn} title="Voltar">
+        <button style={btnStyle} onClick={() => (window.location.href = "/produtor")}>
           Voltar
         </button>
       </div>
 
-      {/* Painel de controles */}
-      <div
-        className={styles.panel}
-        style={{
-          marginTop: 12,
-          padding: 12,
-          borderRadius: 20,
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: 10,
-          }}
-        >
-          {/* Base layer + Meu local */}
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              className={styles.btn}
-              onClick={() => setBase("map")}
-              style={{
-                background:
-                  base === "map"
-                    ? "linear-gradient(180deg, rgba(104,243,177,.22), rgba(104,243,177,.08))"
-                    : undefined,
-              }}
-            >
-              🗺️ Mapa
-            </button>
-
-            <button
-              className={styles.btn}
-              onClick={() => setBase("sat")}
-              style={{
-                background:
-                  base === "sat"
-                    ? "linear-gradient(180deg, rgba(104,243,177,.22), rgba(104,243,177,.08))"
-                    : undefined,
-              }}
-            >
-              🛰️ Satélite
-            </button>
-
-            <button className={styles.btn} onClick={onMyLocation}>
-              📍 {busy === "gps" ? "Localizando..." : "Meu local"}
-            </button>
-          </div>
-
-          {/* Busca */}
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ fontSize: 12, opacity: 0.75 }}>
-              Buscar cidade / fazenda / endereço
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <input
-                className={styles.input}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Ex: Campo Verde MT, Cuiabá, Sorriso..."
-              />
-              <button
-                className={styles.btn}
-                onClick={onSearchPlace}
-                disabled={busy === "search"}
-                style={{ opacity: busy === "search" ? 0.7 : 1 }}
-              >
-                {busy === "search" ? "Buscando..." : "Ir"}
-              </button>
-            </div>
-          </div>
-
-          {/* Coordenadas */}
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ fontSize: 12, opacity: 0.75 }}>
-              Ir por coordenadas (lat,lng)
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <input
-                className={styles.input}
-                value={coordText}
-                onChange={(e) => setCoordText(e.target.value)}
-                placeholder="Ex: -15.601,-56.097"
-              />
-              <button className={styles.btn} onClick={onGoCoords}>
-                Ir
-              </button>
-            </div>
-          </div>
-
-          {!!msg && (
-            <div
-              style={{
-                marginTop: 4,
-                fontSize: 13,
-                color: "rgba(255,255,255,.88)",
-                opacity: 0.95,
-              }}
-            >
-              ⚠️ {msg}
-            </div>
-          )}
+      {/* Controles */}
+      <div style={{ ...panelStyle, marginTop: 12, padding: 12 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button style={base === "map" ? btnActive : btnStyle} onClick={() => setBase("map")}>
+            🗺️ Mapa
+          </button>
+          <button style={base === "sat" ? btnActive : btnStyle} onClick={() => setBase("sat")}>
+            🛰️ Satélite
+          </button>
+          <button style={btnStyle} onClick={onMyLocation}>
+            📍 {busy === "gps" ? "Localizando..." : "Meu local"}
+          </button>
         </div>
+
+        {/* Buscar cidade */}
+        <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+          <div style={{ fontSize: 12, opacity: 0.78 }}>Pesquisar cidade/endereço</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <input
+              style={inputStyle}
+              value={placeText}
+              onChange={(e) => setPlaceText(e.target.value)}
+              placeholder="Ex: Campo Verde - MT"
+            />
+            <button style={btnStyle} onClick={onSearchPlace} disabled={busy === "search"}>
+              {busy === "search" ? "Buscando..." : "Ir"}
+            </button>
+          </div>
+        </div>
+
+        {/* Coordenadas */}
+        <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+          <div style={{ fontSize: 12, opacity: 0.78 }}>Ir por coordenadas (lat,lng)</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <input
+              style={inputStyle}
+              value={coordText}
+              onChange={(e) => setCoordText(e.target.value)}
+              placeholder="Ex: -15.601,-56.097"
+            />
+            <button style={btnStyle} onClick={onGoCoords}>
+              Ir
+            </button>
+          </div>
+        </div>
+
+        {!!msg && (
+          <div style={{ marginTop: 10, fontSize: 13, opacity: 0.92 }}>
+            ⚠️ {msg}
+          </div>
+        )}
       </div>
 
-      {/* MAPA */}
+      {/* Mapa */}
       <div
-        className={styles.panel}
         style={{
+          ...panelStyle,
           marginTop: 12,
-          borderRadius: 22,
+          height: "70vh",
+          minHeight: 440,
           overflow: "hidden",
-          height: "68vh",
-          minHeight: 420,
+          borderRadius: 22,
         }}
       >
         <MapContainer
@@ -372,21 +316,13 @@ export default function PageMapaProdutor() {
           zoomControl={true}
         >
           {base === "map" ? (
-            <TileLayer
-              url={mapUrl}
-              attribution="&copy; OpenStreetMap"
-              maxZoom={19}
-            />
+            <TileLayer url={mapUrl} attribution="&copy; OpenStreetMap" maxZoom={19} />
           ) : (
-            <TileLayer
-              url={satUrl}
-              attribution="&copy; Esri"
-              maxZoom={19}
-            />
+            <TileLayer url={satUrl} attribution="&copy; Esri" maxZoom={19} />
           )}
 
-          <PersistView />
-          <FlyTo target={fly} />
+          <SaveView />
+          <FlyTo target={fly} zoom={16} />
 
           {myPos && (
             <Marker position={[myPos.lat, myPos.lng]}>
@@ -394,10 +330,6 @@ export default function PageMapaProdutor() {
             </Marker>
           )}
         </MapContainer>
-      </div>
-
-      <div style={{ marginTop: 10, fontSize: 12, opacity: 0.65 }}>
-        Dica: se o GPS travar, libera permissão do navegador e tenta de novo.
       </div>
     </div>
   );
