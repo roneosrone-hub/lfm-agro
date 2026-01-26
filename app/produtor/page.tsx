@@ -4,48 +4,89 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Corrige ícones padrão do Leaflet no bundler (Next/Vite)
+// Corrige ícones do Leaflet no Next (Vercel)
 import marker2x from "leaflet/dist/images/marker-icon-2x.png";
 import marker1x from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-type CellStatus = 0 | 1 | 2; // 0=verde, 1=amarelo, 2=vermelho
+type GridCell = {
+  id: string;
+  bounds: L.LatLngBoundsLiteral;
+  center: { lat: number; lng: number };
+};
 
-function statusStyle(status: CellStatus) {
-  // sem depender de tailwind dentro do leaflet
-  if (status === 0) return { color: "#22c55e", fillColor: "#22c55e" }; // verde
-  if (status === 1) return { color: "#eab308", fillColor: "#eab308" }; // amarelo
-  return { color: "#ef4444", fillColor: "#ef4444" }; // vermelho
+function metersToLat(m: number) {
+  return m / 111_320; // aprox
 }
 
-function metersToLatDegrees(m: number) {
-  // ~111.320 km por grau de latitude
-  return m / 111_320;
+function metersToLng(m: number, lat: number) {
+  return m / (111_320 * Math.cos((lat * Math.PI) / 180));
 }
 
-function metersToLngDegrees(m: number, atLat: number) {
-  // longitude varia com o cos(lat)
-  const cos = Math.cos((atLat * Math.PI) / 180);
-  const metersPerDegree = 111_320 * Math.max(cos, 0.00001);
-  return m / metersPerDegree;
+function boundsToCells(bounds: L.LatLngBounds, stepM: number): GridCell[] {
+  const sw = bounds.getSouthWest();
+  const ne = bounds.getNorthEast();
+
+  const stepLat = metersToLat(stepM);
+  const stepLng = metersToLng(stepM, (sw.lat + ne.lat) / 2);
+
+  const cells: GridCell[] = [];
+  let id = 0;
+
+  for (let lat = sw.lat; lat < ne.lat; lat += stepLat) {
+    for (let lng = sw.lng; lng < ne.lng; lng += stepLng) {
+      const cellSw = L.latLng(lat, lng);
+      const cellNe = L.latLng(
+        Math.min(lat + stepLat, ne.lat),
+        Math.min(lng + stepLng, ne.lng)
+      );
+      const b = L.latLngBounds(cellSw, cellNe);
+
+      const c = b.getCenter();
+      cells.push({
+        id: String(id++),
+        bounds: [b.getSouthWest(), b.getNorthEast()],
+        center: { lat: c.lat, lng: c.lng },
+      });
+    }
+  }
+  return cells;
 }
 
 export default function ProdutorPage() {
   const mapRef = useRef<L.Map | null>(null);
-  const gridGroupRef = useRef<L.LayerGroup | null>(null);
+  const baseRef = useRef<L.TileLayer | null>(null);
+  const satRef = useRef<L.TileLayer | null>(null);
 
-  const [cellMeters, setCellMeters] = useState<number>(250); // tamanho do grid (m)
+  const gridLayerRef = useRef<L.LayerGroup | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+
+  const [gridMeters, setGridMeters] = useState<number>(200);
   const [msg, setMsg] = useState<string>("");
 
-  // Tiles
-  const baseUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const satUrl =
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+  const [lastCenter, setLastCenter] = useState<L.LatLng | null>(null);
+  const [lastZoom, setLastZoom] = useState<number>(5);
 
-  const [mode, setMode] = useState<"mapa" | "sat">("mapa");
+  const tileBase = useMemo(
+    () =>
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 20,
+        attribution: "&copy; OpenStreetMap",
+      }),
+    []
+  );
+
+  const tileSat = useMemo(
+    () =>
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 20, attribution: "Tiles &copy; Esri" }
+      ),
+    []
+  );
 
   useEffect(() => {
-    // Ícones Leaflet
+    // ícones Leaflet
     (L.Icon.Default as any).mergeOptions({
       iconRetinaUrl: (marker2x as any).src ?? marker2x,
       iconUrl: (marker1x as any).src ?? marker1x,
@@ -54,308 +95,168 @@ export default function ProdutorPage() {
 
     if (mapRef.current) return;
 
-    // Evita travas de touch em alguns Androids
-    (L as any).Browser.touch = true;
-
     const map = L.map("map", {
+      center: [-15.78, -47.93],
+      zoom: 5,
       zoomControl: true,
       attributionControl: false,
-      center: [-15.78, -47.93], // Brasil
-      zoom: 5,
-      dragging: true,
-      touchZoom: true,
-      doubleClickZoom: true,
-      scrollWheelZoom: true,
-      boxZoom: true,
-      keyboard: true,
-      tap: true,
-      worldCopyJump: true,
     });
 
-    const baseLayer = L.tileLayer(baseUrl, { maxZoom: 20 });
-    const satLayer = L.tileLayer(satUrl, { maxZoom: 20 });
-
-    baseLayer.addTo(map);
-
-    // Guarda refs
     mapRef.current = map;
-    gridGroupRef.current = L.layerGroup().addTo(map);
 
-    // Controles (botões canto direito)
-    const Control = L.Control.extend({
-      options: { position: "topright" as const },
-      onAdd: function () {
-        const div = L.DomUtil.create("div");
-        div.style.display = "flex";
-        div.style.flexDirection = "column";
-        div.style.gap = "8px";
+    baseRef.current = tileBase.addTo(map);
+    satRef.current = tileSat;
 
-        const btnMapa = L.DomUtil.create("button", "", div);
-        btnMapa.innerHTML = "🗺️ Mapa";
-        btnMapa.style.padding = "8px 10px";
-        btnMapa.style.border = "1px solid #ccc";
-        btnMapa.style.background = "white";
-        btnMapa.style.borderRadius = "8px";
-        btnMapa.style.cursor = "pointer";
+    gridLayerRef.current = L.layerGroup().addTo(map);
 
-        const btnSat = L.DomUtil.create("button", "", div);
-        btnSat.innerHTML = "🛰️ Satélite";
-        btnSat.style.padding = "8px 10px";
-        btnSat.style.border = "1px solid #ccc";
-        btnSat.style.background = "white";
-        btnSat.style.borderRadius = "8px";
-        btnSat.style.cursor = "pointer";
+    map.on("moveend", () => {
+      setLastCenter(map.getCenter());
+      setLastZoom(map.getZoom());
+    });
 
-        const btnLocal = L.DomUtil.create("button", "", div);
-        btnLocal.innerHTML = "📍 Meu local";
-        btnLocal.style.padding = "8px 10px";
-        btnLocal.style.border = "1px solid #ccc";
-        btnLocal.style.background = "white";
-        btnLocal.style.borderRadius = "8px";
-        btnLocal.style.cursor = "pointer";
+    setLastCenter(map.getCenter());
+    setLastZoom(map.getZoom());
+  }, [tileBase, tileSat]);
 
-        // evita o mapa mexer quando clica nos botões
-        L.DomEvent.disableClickPropagation(div);
+  function setBase() {
+    const map = mapRef.current!;
+    if (satRef.current && map.hasLayer(satRef.current)) map.removeLayer(satRef.current);
+    if (baseRef.current && !map.hasLayer(baseRef.current)) map.addLayer(baseRef.current);
+  }
 
-        btnMapa.onclick = () => {
-          map.eachLayer((ly: any) => {
-            if (ly instanceof L.TileLayer) map.removeLayer(ly);
-          });
-          baseLayer.addTo(map);
-          setMode("mapa");
-        };
+  function setSat() {
+    const map = mapRef.current!;
+    if (baseRef.current && map.hasLayer(baseRef.current)) map.removeLayer(baseRef.current);
+    if (satRef.current && !map.hasLayer(satRef.current)) map.addLayer(satRef.current);
+  }
 
-        btnSat.onclick = () => {
-          map.eachLayer((ly: any) => {
-            if (ly instanceof L.TileLayer) map.removeLayer(ly);
-          });
-          satLayer.addTo(map);
-          setMode("sat");
-        };
+  async function myLocation() {
+    const map = mapRef.current!;
+    setMsg("Pegando localização…");
 
-        btnLocal.onclick = () => {
-          map.locate({ setView: true, maxZoom: 16 });
-        };
+    if (!navigator.geolocation) {
+      setMsg("Geolocalização não suportada.");
+      return;
+    }
 
-        return div;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const p = L.latLng(lat, lng);
+
+        map.setView(p, Math.max(map.getZoom(), 16));
+
+        if (markerRef.current) markerRef.current.remove();
+        markerRef.current = L.marker(p).addTo(map).bindPopup("Meu local").openPopup();
+
+        setMsg("Localização OK ✅");
       },
-    });
-
-    map.addControl(new Control());
-
-    map.on("locationfound", (e: any) => {
-      const radius = e.accuracy || 30;
-      L.circleMarker(e.latlng, { radius: 8, color: "#2563eb" }).addTo(map);
-      L.circle(e.latlng, { radius, color: "#60a5fa", fillOpacity: 0.15 }).addTo(map);
-      setMsg(`Local encontrado (precisão ~${Math.round(radius)} m)`);
-    });
-
-    map.on("locationerror", () => {
-      setMsg("Não consegui acessar sua localização (permissão do navegador).");
-    });
-  }, []);
+      () => setMsg("Não consegui pegar sua localização (permissão?)."),
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }
 
   function clearGrid() {
-    if (!gridGroupRef.current) return;
-    gridGroupRef.current.clearLayers();
-    setMsg("Grid removido.");
+    gridLayerRef.current?.clearLayers();
+    setMsg("Grid limpo.");
   }
 
   function generateGrid() {
-    const map = mapRef.current;
-    const group = gridGroupRef.current;
-    if (!map || !group) return;
+    const map = mapRef.current!;
+    const step = Math.max(20, Number(gridMeters) || 200);
 
-    group.clearLayers();
+    gridLayerRef.current?.clearLayers();
 
     const b = map.getBounds();
-    const south = b.getSouth();
-    const north = b.getNorth();
-    const west = b.getWest();
-    const east = b.getEast();
+    const cells = boundsToCells(b, step);
 
-    const stepLat = metersToLatDegrees(cellMeters);
+    const layer = gridLayerRef.current!;
+    cells.forEach((cell) => {
+      const rect = L.rectangle(cell.bounds, {
+        weight: 1,
+        opacity: 0.7,
+        fillOpacity: 0.06,
+      }).addTo(layer);
 
-    let cellCount = 0;
-
-    // Percorre latitude
-    for (let lat = south; lat < north; lat += stepLat) {
-      // usa latitude do “meio” da linha pra calcular stepLng
-      const latMid = lat + stepLat / 2;
-      const stepLng = metersToLngDegrees(cellMeters, latMid);
-
-      for (let lng = west; lng < east; lng += stepLng) {
-        const bounds: L.LatLngBoundsExpression = [
-          [lat, lng],
-          [Math.min(lat + stepLat, north), Math.min(lng + stepLng, east)],
-        ];
-
-        let status: CellStatus = 0;
-
-        const rect = L.rectangle(bounds, {
-          weight: 1,
-          opacity: 0.9,
-          fillOpacity: 0.18,
-          ...statusStyle(status),
-        });
-
-        // guarda meta no próprio layer
-        (rect as any)._cellMeta = {
-          status,
-          bounds,
-        };
-
-        rect.on("click", () => {
-          const meta = (rect as any)._cellMeta as { status: CellStatus; bounds: any };
-          meta.status = ((meta.status + 1) % 3) as CellStatus; // 0->1->2->0
-          rect.setStyle({
-            ...statusStyle(meta.status),
-            fillOpacity: 0.22,
-            weight: 1,
-          });
-        });
-
-        rect.addTo(group);
-        cellCount++;
-      }
-    }
-
-    setMsg(`Grid gerado: ${cellCount} células (~${cellMeters} m). Clique nas células para classificar.`);
-  }
-
-  async function exportGridJSON() {
-    const group = gridGroupRef.current;
-    if (!group) return;
-
-    const cells: any[] = [];
-    group.eachLayer((layer: any) => {
-      const meta = layer?._cellMeta;
-      if (!meta) return;
-      const b = meta.bounds as L.LatLngBoundsExpression;
-      const status = meta.status as CellStatus;
-
-      cells.push({
-        status,
-        bounds: b,
+      rect.on("click", () => {
+        const c = L.latLng(cell.center.lat, cell.center.lng);
+        L.popup()
+          .setLatLng(c)
+          .setContent(
+            `<b>Grid</b><br/>Centro:<br/>${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}`
+          )
+          .openOn(map);
       });
     });
 
-    const payload = {
-      cellMeters,
-      mode,
-      createdAt: new Date().toISOString(),
-      cells,
-    };
-
-    const text = JSON.stringify(payload, null, 2);
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setMsg("✅ JSON do grid copiado para a área de transferência.");
-    } catch {
-      setMsg("Não consegui copiar automaticamente. (No celular às vezes bloqueia.)");
-      // fallback simples: abre uma nova aba com o JSON
-      const blob = new Blob([text], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-    }
+    setMsg(`Grid gerado: ${cells.length} células (${step} m).`);
   }
 
-  const hint = useMemo(() => {
-    return "1) Ajuste o tamanho (m)  2) Clique em GERAR  3) Clique nas células: verde→amarelo→vermelho";
-  }, []);
+  function exportGridJSON() {
+    const map = mapRef.current!;
+    const step = Math.max(20, Number(gridMeters) || 200);
+    const b = map.getBounds();
+    const cells = boundsToCells(b, step);
+
+    const payload = {
+      stepMeters: step,
+      view: { center: map.getCenter(), zoom: map.getZoom() },
+      bounds: {
+        southWest: b.getSouthWest(),
+        northEast: b.getNorthEast(),
+      },
+      cells,
+      createdAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `grid_${step}m.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    setMsg("JSON exportado.");
+  }
 
   return (
-    <main style={{ padding: 14, maxWidth: 980, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Área do Produtor • Grid de Amostragem</h1>
-      <p style={{ marginTop: 0, opacity: 0.8, marginBottom: 10 }}>{hint}</p>
-
+    <main style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <div
         style={{
+          padding: 10,
           display: "flex",
-          gap: 10,
+          gap: 8,
           flexWrap: "wrap",
           alignItems: "center",
-          marginBottom: 10,
-          padding: 10,
-          border: "1px solid rgba(0,0,0,.12)",
-          borderRadius: 12,
+          borderBottom: "1px solid rgba(0,0,0,.1)",
         }}
       >
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          Tamanho do grid (m)
-          <input
-            type="number"
-            value={cellMeters}
-            min={50}
-            max={5000}
-            step={50}
-            onChange={(e) => setCellMeters(Number(e.target.value || 250))}
-            style={{
-              width: 110,
-              padding: "8px 10px",
-              borderRadius: 10,
-              border: "1px solid rgba(0,0,0,.2)",
-            }}
-          />
-        </label>
+        <button onClick={setBase}>🗺️ Mapa</button>
+        <button onClick={setSat}>🛰️ Satélite</button>
+        <button onClick={myLocation}>📍 Meu local</button>
 
-        <button
-          onClick={generateGrid}
-          style={{
-            padding: "9px 12px",
-            borderRadius: 12,
-            border: "1px solid rgba(0,0,0,.2)",
-            background: "white",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
-        >
-          🧩 Gerar grid
-        </button>
+        <span style={{ marginLeft: 6 }}>Grid (m):</span>
+        <input
+          value={gridMeters}
+          onChange={(e) => setGridMeters(Number(e.target.value))}
+          type="number"
+          min={20}
+          step={10}
+          style={{ width: 90, padding: 6 }}
+        />
 
-        <button
-          onClick={clearGrid}
-          style={{
-            padding: "9px 12px",
-            borderRadius: 12,
-            border: "1px solid rgba(0,0,0,.2)",
-            background: "white",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
-        >
-          🧽 Limpar
-        </button>
+        <button onClick={generateGrid}>🧩 Gerar grid</button>
+        <button onClick={clearGrid}>🧽 Limpar</button>
+        <button onClick={exportGridJSON}>📤 Exportar JSON</button>
 
-        <button
-          onClick={exportGridJSON}
-          style={{
-            padding: "9px 12px",
-            borderRadius: 12,
-            border: "1px solid rgba(0,0,0,.2)",
-            background: "white",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
-        >
-          📤 Exportar JSON
-        </button>
-
-        <span style={{ opacity: 0.75 }}>{msg}</span>
+        <span style={{ marginLeft: 8, opacity: 0.8 }}>{msg}</span>
       </div>
 
-      <div
-        id="map"
-        style={{
-          height: "70vh",
-          minHeight: 520,
-          width: "100%",
-          borderRadius: 14,
-          overflow: "hidden",
-          border: "1px solid rgba(0,0,0,.12)",
-        }}
-      />
+      <div id="map" style={{ flex: 1 }} />
     </main>
   );
 }
