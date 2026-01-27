@@ -1,14 +1,25 @@
 @import "leaflet/dist/leaflet.css";
 @import "leaflet-draw/dist/leaflet.draw.css";
 
-html,
-body {
+/* garante o mapa preencher e os botões aparecerem */
+html, body {
+  height: 100%;
   margin: 0;
   padding: 0;
-  background: #0b0f12;
-  color: white;
 }
 
-* {
-  box-sizing: border-box;
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* melhora clique no mobile */
+.leaflet-control a {
+  touch-action: manipulation;
+}
+
+/* garante controle do draw por cima */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1000;
 }
