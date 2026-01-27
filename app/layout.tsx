@@ -1,12 +1,8 @@
-// app/layout.tsx
 import "./globals.css";
-
-import "leaflet/dist/leaflet.css";
-import "leaflet-draw/dist/leaflet.draw.css";
 
 export const metadata = {
   title: "LFM Agro",
-  description: "Produtor • Monitoramento agrícola",
+  description: "Plataforma de monitoramento agrícola",
 };
 
 export default function RootLayout({
@@ -16,7 +12,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body style={{ margin: 0, padding: 0 }}>{children}</body>
+      <head />
+      <body
+        style={{
+          margin: 0,
+          padding: 0,
+          background: "#0b0f12",
+          color: "white",
+          fontFamily: "Arial, Helvetica, sans-serif",
+        }}
+      >
+        {children}
+      </body>
     </html>
   );
 }
