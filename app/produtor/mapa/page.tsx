@@ -18,7 +18,7 @@ function MapaInner() {
   const { useEffect, useMemo, useState } = React;
 
   const L = require("leaflet");
-  require("leaflet-draw"); // ✅ IMPORTANTE: carrega o JS do draw
+  require("leaflet-draw");
   const turf = require("@turf/turf");
 
   const {
@@ -40,13 +40,10 @@ function MapaInner() {
   const [qtd, setQtd] = useState(30);
 
   useEffect(() => {
-    // ✅ corrige ícone padrão
     const icon = L.icon({
       iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      iconRetinaUrl:
-        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      shadowUrl:
-        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       iconSize: [25, 41],
       iconAnchor: [12, 41],
     });
@@ -54,158 +51,126 @@ function MapaInner() {
   }, []);
 
   function onCreated(e) {
-    const latlngs = e.layer.getLatLngs()[0];
+    const layer = e.layer;
+    const latlngs = layer.getLatLngs()[0];
     setPoly(latlngs.map((p) => [p.lat, p.lng]));
     setPontos([]);
   }
 
   function gerarPontos() {
-    if (!poly) return;
+    if (!poly) return alert("Desenhe o talhão primeiro.");
 
     const ring = poly.map(([lat, lng]) => [lng, lat]);
     ring.push(ring[0]);
 
-    const pol = turf.polygon([ring]);
-    const bbox = turf.bbox(pol);
+    const polygon = turf.polygon([ring]);
+    const bbox = turf.bbox(polygon);
 
-    const km = Math.sqrt(gridHa * 10000) / 1000;
-    const grid = turf.squareGrid(bbox, km, { units: "kilometers" });
+    const cellSideKm = Math.sqrt(gridHa * 10000) / 1000;
+
+    const grid = turf.squareGrid(bbox, cellSideKm, { units: "kilometers" });
 
     const dentro = grid.features
       .map((f) => turf.centroid(f))
-      .filter((p) => turf.booleanPointInPolygon(p, pol))
+      .filter((p) => turf.booleanPointInPolygon(p, polygon))
       .map((p) => [p.geometry.coordinates[1], p.geometry.coordinates[0]]);
 
     const step = Math.max(1, Math.floor(dentro.length / qtd));
+    const selecionados = dentro.filter((_, i) => i % step === 0).slice(0, qtd);
 
-    const sel = dentro
-      .filter((_, i) => i % step === 0)
-      .slice(0, qtd)
-      .map((p, i) => ({
-        lat: p[0],
-        lng: p[1],
-        n: i + 1,
-        status: ["verde", "amarelo", "vermelho"][Math.floor(Math.random() * 3)],
-      }));
+    const pts = selecionados.map((p, i) => ({
+      lat: p[0],
+      lng: p[1],
+      n: i + 1,
+      status: "verde", // verde | amarelo | vermelho
+    }));
 
-    setPontos(sel);
+    setPontos(pts);
   }
 
-  function cor(status) {
-    if (status === "verde") return "green";
+  function corStatus(status) {
+    if (status === "vermelho") return "red";
     if (status === "amarelo") return "orange";
-    return "red";
+    return "green";
+  }
+
+  function alternarStatus(i) {
+    setPontos((old) =>
+      old.map((p, idx) => {
+        if (idx !== i) return p;
+        const next =
+          p.status === "verde"
+            ? "amarelo"
+            : p.status === "amarelo"
+            ? "vermelho"
+            : "verde";
+        return { ...p, status: next };
+      })
+    );
   }
 
   return (
-    <main style={{ height: "100vh", background: "#060b08", color: "white" }}>
-      {/* barra fixa em cima (pra não sumir no celular) */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 2000,
-          padding: 10,
-          background: "rgba(6,11,8,0.92)",
-          borderBottom: "1px solid rgba(255,255,255,.08)",
-        }}
-      >
-        <div style={{ maxWidth: 980, margin: "0 auto" }}>
-          <b>Mapa de Monitoramento</b>
-          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>
-            1) Clique no botão de polígono (canto direito do mapa) e desenhe o talhão.
-            2) Defina grid e quantidade.
-            3) Gerar pontos.
-          </div>
+    <main style={{ minHeight: "100vh", background: "#0b0f12", color: "white", padding: 10 }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+        <h2>🗺️ Mapa de Monitoramento</h2>
+        <p>Desenhe o talhão, gere os pontos e marque a pressão de pragas.</p>
 
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <input
-              type="number"
-              value={gridHa}
-              onChange={(e) => setGridHa(Number(e.target.value))}
-              placeholder="Grid (ha)"
-              style={{ width: 120, padding: 8, borderRadius: 10 }}
-            />
-            <input
-              type="number"
-              value={qtd}
-              onChange={(e) => setQtd(Number(e.target.value))}
-              placeholder="Qtde pontos"
-              style={{ width: 140, padding: 8, borderRadius: 10 }}
-            />
-            <button
-              onClick={gerarPontos}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 10,
-                background: "#1fa463",
-                color: "white",
-                fontWeight: 700,
-              }}
-            >
-              Gerar pontos
-            </button>
-            <a
-              href="/produtor"
-              style={{
-                padding: "8px 12px",
-                borderRadius: 10,
-                background: "rgba(255,255,255,.08)",
-                color: "white",
-                textDecoration: "none",
-                fontWeight: 700,
-              }}
-            >
-              Voltar
-            </a>
-          </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <input
+            type="number"
+            value={gridHa}
+            onChange={(e) => setGridHa(Number(e.target.value))}
+            placeholder="Grid (ha)"
+          />
+          <input
+            type="number"
+            value={qtd}
+            onChange={(e) => setQtd(Number(e.target.value))}
+            placeholder="Qtd pontos"
+          />
+          <button onClick={gerarPontos}>Gerar grides</button>
         </div>
-      </div>
 
-      {/* mapa */}
-      <div style={{ height: "100%", paddingTop: 110 }}>
-        <MapContainer center={center} zoom={14} style={{ height: "100%" }}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <div style={{ height: "75vh", borderRadius: 12, overflow: "hidden" }}>
+          <MapContainer center={center} zoom={14} style={{ height: "100%", width: "100%" }}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-          <FeatureGroup>
-            <EditControl
-              position="topright"
-              onCreated={onCreated}
-              draw={{
-                polygon: true,
-                rectangle: false,
-                circle: false,
-                marker: false,
-                polyline: false,
-                circlemarker: false,
-              }}
-            />
-          </FeatureGroup>
+            <FeatureGroup>
+              <EditControl
+                position="topright"
+                onCreated={onCreated}
+                draw={{
+                  polygon: true,
+                  rectangle: false,
+                  circle: false,
+                  marker: false,
+                  polyline: false,
+                  circlemarker: false,
+                }}
+              />
+            </FeatureGroup>
 
-          {poly && <Polygon positions={poly} pathOptions={{ color: "#00ff88" }} />}
+            {poly && <Polygon positions={poly} pathOptions={{ color: "#00ff88" }} />}
 
-          {pontos.map((p, i) => (
-            <Marker
-              key={i}
-              position={[p.lat, p.lng]}
-              icon={L.divIcon({
-                className: "ponto",
-                html: `<div style="
-                  background:${cor(p.status)};
-                  width:14px;height:14px;border-radius:50%;
-                  border:2px solid white"></div>`,
-              })}
-            >
-              <Popup>
-                <b>Ponto {p.n}</b>
-                <br />
-                Status: {p.status}
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+            {pontos.map((p, i) => (
+              <Marker
+                key={i}
+                position={[p.lat, p.lng]}
+                icon={L.divIcon({
+                  html: `<div style="background:${corStatus(p.status)};width:16px;height:16px;border-radius:50%;border:2px solid white"></div>`,
+                })}
+              >
+                <Popup>
+                  <b>Ponto {p.n}</b><br />
+                  Status: {p.status}<br /><br />
+                  <button onClick={() => alternarStatus(i)}>
+                    Alterar (verde / amarelo / vermelho)
+                  </button>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        </div>
       </div>
     </main>
   );
