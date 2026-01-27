@@ -1,74 +1,60 @@
 // @ts-nocheck
 "use client";
 
-import dynamic from "next/dynamic";
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import "leaflet/dist/leaflet.css";
+import "leaflet-draw/dist/leaflet.draw.css";
 
-const MapaProdutorClient = dynamic(() => Promise.resolve(MapaProdutorInner), { ssr: false });
+import L from "leaflet";
+import "@geoman-io/leaflet-geoman-free"; // opcional, não quebra se não tiver
+import "leaflet-geoman-free/dist/leaflet-geoman.css"; // opcional
 
-export default function Page() {
-  return <MapaProdutorClient />;
+import { MapContainer, TileLayer, Polygon, Marker, Popup, FeatureGroup } from "react-leaflet";
+import { EditControl } from "react-leaflet-draw";
+
+import * as turf from "@turf/turf";
+
+type LatLng = [number, number];
+
+type CellStatus = "ok" | "alerta" | "critico";
+
+type GridCell = {
+  id: string;
+  polygonLatLngs: LatLng[]; // para desenhar no Leaflet
+  center: LatLng; // marcador/label
+  status: CellStatus;
+  n: number;
+};
+
+function uid() {
+  return Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
 }
 
-function MapaProdutorInner() {
-  const React = require("react");
-  const { useEffect, useMemo, useState } = React;
+function statusColor(status: CellStatus) {
+  // verde / amarelo / vermelho (com transparência)
+  if (status === "ok") return { fill: "rgba(0, 200, 70, 0.35)", stroke: "rgba(0, 200, 70, 0.8)" };
+  if (status === "alerta") return { fill: "rgba(255, 200, 0, 0.35)", stroke: "rgba(255, 200, 0, 0.85)" };
+  return { fill: "rgba(255, 60, 60, 0.35)", stroke: "rgba(255, 60, 60, 0.85)" };
+}
 
-  const turf = require("@turf/turf");
-  const L = require("leaflet");
+export default function Page() {
+  const center = useMemo<LatLng>(() => [-15.60, -56.10], []);
+  const [modo, setModo] = useState<"mapa" | "satelite">("satelite");
 
-  const {
-    MapContainer,
-    TileLayer,
-    Polygon,
-    Marker,
-    Popup,
-    GeoJSON,
-    ZoomControl,
-  } = require("react-leaflet");
-  const { FeatureGroup } = require("react-leaflet");
-  const { EditControl } = require("react-leaflet-draw");
-
-  type LatLng = [number, number];
-
-  const center = useMemo(() => [-15.60, -56.10], []);
-
-  // Talhão desenhado (lat/lng)
   const [polyLatLngs, setPolyLatLngs] = useState<LatLng[] | null>(null);
 
-  // Pontos (com status)
-  // status: "ok" | "alerta" | "critico"
-  const [pontos, setPontos] = useState<any[]>([]);
+  // “grid” aqui é tamanho da célula em hectares
+  const [gridHa, setGridHa] = useState<number>(10);
 
-  // Parâmetros
-  const [gridHa, setGridHa] = useState(10);
-  const [qtdPontos, setQtdPontos] = useState(30);
+  // se quiser também limitar a quantidade de células, deixa isso
+  const [limiteCelulas, setLimiteCelulas] = useState<number>(9999);
 
-  // Camada de zonas (Voronoi recortado no talhão)
-  const [zonas, setZonas] = useState<any>(null);
+  const [gridCells, setGridCells] = useState<GridCell[]>([]);
 
-  // ====== ÍCONES CORES (VERDE / AMARELO / VERMELHO) ======
-  const iconBase = (color: string) =>
-    L.divIcon({
-      className: "",
-      html: `
-        <div style="
-          width:18px;height:18px;border-radius:50%;
-          background:${color};
-          border:2px solid #fff;
-          box-shadow:0 2px 6px rgba(0,0,0,.35);
-        "></div>
-      `,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
-    });
+  // localização do usuário
+  const [meuLocal, setMeuLocal] = useState<LatLng | null>(null);
 
-  const iconOk = useMemo(() => iconBase("#22c55e"), []);
-  const iconAlerta = useMemo(() => iconBase("#eab308"), []);
-  const iconCritico = useMemo(() => iconBase("#ef4444"), []);
-  const iconNeutro = useMemo(() => iconBase("#60a5fa"), []);
-
-  // ====== Leaflet default icon (se precisar) ======
+  // corrige ícone padrão do Leaflet no Next
   useEffect(() => {
     const DefaultIcon = L.icon({
       iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -80,225 +66,223 @@ function MapaProdutorInner() {
     L.Marker.prototype.options.icon = DefaultIcon;
   }, []);
 
-  // ====== Converter talhão para GeoJSON polygon (lng/lat) ======
-  function getTalhaoPolygon() {
-    if (!polyLatLngs) return null;
+  function onCreated(e: any) {
+    // usuário desenhou o polígono
+    const layer = e.layer;
+    const latlngs = layer.getLatLngs()?.[0] || [];
+    const pts: LatLng[] = latlngs.map((p: any) => [p.lat, p.lng]);
+    setPolyLatLngs(pts);
+    setGridCells([]); // reseta grid quando redesenha talhão
+  }
+
+  function limparTudo() {
+    setPolyLatLngs(null);
+    setGridCells([]);
+  }
+
+  function gerarGrid() {
+    if (!polyLatLngs || polyLatLngs.length < 3) return;
+
+    // turf usa [lng, lat]
     const ring = polyLatLngs.map(([lat, lng]) => [lng, lat]);
     ring.push(ring[0]);
-    return turf.polygon([ring]);
-  }
 
-  // ====== Quando desenhar talhão ======
-  function onCreated(e: any) {
-    const layer = e.layer;
-    const latlngs = layer.getLatLngs()[0];
-    setPolyLatLngs(latlngs.map((p: any) => [p.lat, p.lng]));
-    setPontos([]);
-    setZonas(null);
-  }
+    const talhao = turf.polygon([ring]);
+    const bbox = turf.bbox(talhao);
 
-  // ====== GERAR PONTOS ======
-  function gerarPontos() {
-    const poly = getTalhaoPolygon();
-    if (!poly) return;
-
-    const bbox = turf.bbox(poly);
-
-    // tamanho do grid em km (ha -> m² -> lado -> km)
+    // converte hectares para “lado” aproximado da célula (quadrada)
+    // área(ha) -> m² (1ha = 10.000 m²)
+    // lado = sqrt(area_m2)
+    // em km:
     const cellSideKm = Math.sqrt(gridHa * 10000) / 1000;
 
-    // faz grade quadrada e pega centroides dentro do talhão
+    // cria grid quadrado
     const grid = turf.squareGrid(bbox, cellSideKm, { units: "kilometers" });
 
-    const dentro = grid.features
-      .map((f: any) => turf.centroid(f))
-      .filter((p: any) => turf.booleanPointInPolygon(p, poly))
-      .map((p: any) => [p.geometry.coordinates[1], p.geometry.coordinates[0]]); // lat,lng
+    // filtra células que intersectam o talhão
+    const cellsInside = grid.features
+      .filter((f: any) => turf.booleanIntersects(f, talhao))
+      .slice(0, Math.max(1, limiteCelulas));
 
-    // pega uma quantidade aproximada
-    const step = Math.max(1, Math.floor(dentro.length / qtdPontos));
-    const selecionados = dentro.filter((_: any, i: number) => i % step === 0).slice(0, qtdPontos);
+    const out: GridCell[] = cellsInside.map((cell: any, idx: number) => {
+      const coords = cell.geometry.coordinates[0]; // [ [lng,lat], ... ]
+      const latlngs: LatLng[] = coords.map((c: any) => [c[1], c[0]]);
 
-    const pts = selecionados.map((p: any, i: number) => ({
-      id: String(i + 1),
-      n: i + 1,
-      lat: p[0],
-      lng: p[1],
-      status: "ok", // começa tudo ok (você muda clicando)
-    }));
+      const ctd = turf.centroid(cell);
+      const cLat = ctd.geometry.coordinates[1];
+      const cLng = ctd.geometry.coordinates[0];
 
-    setPontos(pts);
-    setZonas(null); // vai gerar depois que classificar
+      return {
+        id: uid(),
+        polygonLatLngs: latlngs,
+        center: [cLat, cLng],
+        status: "ok",
+        n: idx + 1,
+      };
+    });
+
+    setGridCells(out);
   }
 
-  // ====== ATUALIZAR STATUS DE UM PONTO ======
-  function setStatus(id: string, status: "ok" | "alerta" | "critico") {
-    setPontos((prev: any[]) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
-  }
-
-  // ====== GERAR ZONAS COLORIDAS (VORONOI + recorte no talhão) ======
-  function gerarZonas() {
-    const poly = getTalhaoPolygon();
-    if (!poly || pontos.length === 0) return;
-
-    const bbox = turf.bbox(poly);
-
-    // pontos em GeoJSON
-    const fc = turf.featureCollection(
-      pontos.map((p: any) =>
-        turf.point([p.lng, p.lat], {
-          id: p.id,
-          n: p.n,
-          status: p.status,
-        })
-      )
-    );
-
-    // Voronoi sobre bbox do talhão
-    const vor = turf.voronoi(fc, { bbox });
-
-    if (!vor) return;
-
-    // recortar cada célula dentro do talhão
-    const recortadas = vor.features
-      .map((cell: any) => {
-        if (!cell) return null;
-        // manter props do ponto “gerador” (o turf coloca em properties geralmente)
-        // mas às vezes vem vazio; então pega o mais próximo do centro da célula:
-        const c = turf.centroid(cell);
-        const nearest = turf.nearestPoint(c, fc);
-        cell.properties = nearest.properties;
-
-        const inter = turf.intersect(cell, poly);
-        if (!inter) return null;
-        inter.properties = cell.properties;
-        return inter;
+  function cycleStatus(cellId: string) {
+    // clica na célula para alternar: ok -> alerta -> critico -> ok
+    setGridCells((prev) =>
+      prev.map((c) => {
+        if (c.id !== cellId) return c;
+        const next: CellStatus = c.status === "ok" ? "alerta" : c.status === "alerta" ? "critico" : "ok";
+        return { ...c, status: next };
       })
-      .filter(Boolean);
-
-    setZonas(turf.featureCollection(recortadas));
+    );
   }
 
-  // ====== Estilo das zonas ======
-  function styleZona(feature: any) {
-    const s = feature?.properties?.status;
-    let fill = "#22c55e";
-    if (s === "alerta") fill = "#eab308";
-    if (s === "critico") fill = "#ef4444";
-    return {
-      color: "rgba(255,255,255,.35)",
-      weight: 1,
-      fillColor: fill,
-      fillOpacity: 0.55,
-    };
+  function pegarMeuLocal() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setMeuLocal([pos.coords.latitude, pos.coords.longitude]);
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
   }
-
-  // ====== Ícone do ponto ======
-  function iconDoPonto(p: any) {
-    if (p.status === "ok") return iconOk;
-    if (p.status === "alerta") return iconAlerta;
-    if (p.status === "critico") return iconCritico;
-    return iconNeutro;
-  }
-
-  const talhaoReady = !!polyLatLngs;
 
   return (
-    <main style={{ minHeight: "100vh", padding: 12, background: "#0b0f12", color: "white" }}>
+    <main style={{ minHeight: "100vh", background: "#0b0f12", color: "white", padding: 12 }}>
       <div style={{ maxWidth: 980, margin: "0 auto" }}>
-        <h2 style={{ marginBottom: 6 }}>Mapa de Monitoramento</h2>
+        <h2 style={{ margin: "6px 0 2px", fontSize: 26 }}>Mapa de Monitoramento</h2>
         <p style={{ marginTop: 0, opacity: 0.85 }}>
-          1) Desenhe o talhão. 2) Defina grid (ha) e nº de pontos. 3) Gere pontos. 4) Classifique (🟢/🟡/🔴) e clique em “Gerar mapa”.
+          1) Desenhe o talhão (polígono). 2) Defina o grid (ha). 3) Clique em “Gerar grid”. 4) Clique nas células para marcar:
+          <b> Verde</b> (ok) → <b>Amarelo</b> (alerta) → <b>Vermelho</b> (crítico).
         </p>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, opacity: 0.8 }}>Grid (ha)</span>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 10,
+            alignItems: "center",
+            marginBottom: 12,
+          }}
+        >
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ opacity: 0.85 }}>Grid (ha)</span>
             <input
               type="number"
               value={gridHa}
+              min={1}
+              step={1}
               onChange={(e) => setGridHa(Number(e.target.value))}
-              style={{ padding: 10, borderRadius: 10, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.06)", color: "white" }}
+              style={{
+                width: 110,
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,.15)",
+                background: "rgba(255,255,255,.06)",
+                color: "white",
+              }}
             />
-          </label>
+          </div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span style={{ fontSize: 12, opacity: 0.8 }}>Qtde pontos</span>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ opacity: 0.85 }}>Limite células</span>
             <input
               type="number"
-              value={qtdPontos}
-              onChange={(e) => setQtdPontos(Number(e.target.value))}
-              style={{ padding: 10, borderRadius: 10, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.06)", color: "white" }}
+              value={limiteCelulas}
+              min={10}
+              step={10}
+              onChange={(e) => setLimiteCelulas(Number(e.target.value))}
+              style={{
+                width: 140,
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,.15)",
+                background: "rgba(255,255,255,.06)",
+                color: "white",
+              }}
             />
-          </label>
+          </div>
 
           <button
-            onClick={gerarPontos}
-            disabled={!talhaoReady}
+            onClick={gerarGrid}
             style={{
-              padding: "12px 14px",
+              padding: "10px 14px",
               borderRadius: 12,
-              border: "1px solid rgba(34,197,94,.35)",
-              background: talhaoReady ? "rgba(34,197,94,.18)" : "rgba(255,255,255,.06)",
+              border: "1px solid rgba(255,255,255,.18)",
+              background: "rgba(46, 204, 113, .25)",
               color: "white",
-              cursor: talhaoReady ? "pointer" : "not-allowed",
+              fontWeight: 700,
             }}
           >
-            Gerar pontos
+            Gerar grid
           </button>
 
           <button
-            onClick={gerarZonas}
-            disabled={!talhaoReady || pontos.length === 0}
+            onClick={limparTudo}
             style={{
-              padding: "12px 14px",
+              padding: "10px 14px",
               borderRadius: 12,
-              border: "1px solid rgba(234,179,8,.35)",
-              background: talhaoReady && pontos.length ? "rgba(234,179,8,.18)" : "rgba(255,255,255,.06)",
-              color: "white",
-              cursor: talhaoReady && pontos.length ? "pointer" : "not-allowed",
-            }}
-          >
-            Gerar mapa (zonas)
-          </button>
-
-          <a
-            href="/produtor"
-            style={{
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,.16)",
+              border: "1px solid rgba(255,255,255,.18)",
               background: "rgba(255,255,255,.06)",
               color: "white",
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
+              fontWeight: 700,
             }}
           >
-            Voltar
-          </a>
+            Limpar
+          </button>
+
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <button
+              onClick={() => setModo("mapa")}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,.18)",
+                background: modo === "mapa" ? "rgba(255,255,255,.18)" : "rgba(255,255,255,.06)",
+                color: "white",
+                fontWeight: 700,
+              }}
+            >
+              🗺️ Mapa
+            </button>
+            <button
+              onClick={() => setModo("satelite")}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,.18)",
+                background: modo === "satelite" ? "rgba(255,255,255,.18)" : "rgba(255,255,255,.06)",
+                color: "white",
+                fontWeight: 700,
+              }}
+            >
+              🛰️ Satélite
+            </button>
+            <button
+              onClick={pegarMeuLocal}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,.18)",
+                background: "rgba(255,255,255,.06)",
+                color: "white",
+                fontWeight: 700,
+              }}
+            >
+              📍 Meu local
+            </button>
+          </div>
         </div>
 
-        {/* Legenda */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 999, background: "#22c55e", display: "inline-block" }} /> Tranquilo
-          </span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 999, background: "#eab308", display: "inline-block" }} /> Alerta
-          </span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 999, background: "#ef4444", display: "inline-block" }} /> Crítico
-          </span>
-          <span style={{ opacity: 0.75, fontSize: 12 }}>Clique no ponto para classificar.</span>
-        </div>
-
-        <div style={{ height: "75vh", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,.10)" }}>
-          <MapContainer center={center} zoom={14} style={{ height: "100%", width: "100%" }} zoomControl={false}>
-            <ZoomControl position="topleft" />
-
-            {/* Troque aqui se quiser satélite padrão (tem limites de uso). */}
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <div style={{ height: "76vh", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(255,255,255,.12)" }}>
+          <MapContainer center={center} zoom={14} style={{ height: "100%", width: "100%" }}>
+            {modo === "mapa" ? (
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            ) : (
+              <TileLayer
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                attribution="Tiles © Esri"
+              />
+            )}
 
             <FeatureGroup>
               <EditControl
@@ -315,60 +299,48 @@ function MapaProdutorInner() {
               />
             </FeatureGroup>
 
-            {/* Talhão */}
-            {polyLatLngs && <Polygon positions={polyLatLngs} pathOptions={{ color: "#22c55e", weight: 2 }} />}
-
-            {/* Zonas (mapa colorido) */}
-            {zonas && (
-              <GeoJSON
-                data={zonas}
-                style={styleZona}
-                onEachFeature={(feature: any, layer: any) => {
-                  const n = feature?.properties?.n;
-                  const s = feature?.properties?.status;
-                  layer.bindPopup(`Zona do ponto ${n} • ${s === "ok" ? "Tranquilo" : s === "alerta" ? "Alerta" : "Crítico"}`);
-                }}
+            {/* talhão */}
+            {polyLatLngs && (
+              <Polygon
+                positions={polyLatLngs}
+                pathOptions={{ color: "rgba(0,255,140,.9)", weight: 3, fillColor: "rgba(0,255,140,.12)", fillOpacity: 0.2 }}
               />
             )}
 
-            {/* Pontos */}
-            {pontos.map((p: any) => (
-              <Marker key={p.id} position={[p.lat, p.lng]} icon={iconDoPonto(p)}>
-                <Popup>
-                  <div style={{ minWidth: 160 }}>
-                    <b>Ponto {p.n}</b>
-                    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 10 }}>
-                      Status: {p.status === "ok" ? "Tranquilo" : p.status === "alerta" ? "Alerta" : "Crítico"}
+            {/* grids */}
+            {gridCells.map((c) => {
+              const col = statusColor(c.status);
+              return (
+                <Polygon
+                  key={c.id}
+                  positions={c.polygonLatLngs}
+                  eventHandlers={{
+                    click: () => cycleStatus(c.id),
+                  }}
+                  pathOptions={{
+                    color: col.stroke,
+                    weight: 2,
+                    fillColor: col.fill,
+                    fillOpacity: 1,
+                  }}
+                >
+                  <Popup>
+                    <div style={{ minWidth: 180 }}>
+                      <b>Célula {c.n}</b>
+                      <div>Status: {c.status === "ok" ? "🟢 OK" : c.status === "alerta" ? "🟡 Alerta" : "🔴 Crítico"}</div>
+                      <div style={{ marginTop: 8, opacity: 0.85 }}>Clique na área para alternar (OK → Alerta → Crítico).</div>
                     </div>
+                  </Popup>
+                </Polygon>
+              );
+            })}
 
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <button
-                        onClick={() => setStatus(p.id, "ok")}
-                        style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(34,197,94,.4)", background: "rgba(34,197,94,.15)", color: "white" }}
-                      >
-                        🟢 Tranquilo
-                      </button>
-                      <button
-                        onClick={() => setStatus(p.id, "alerta")}
-                        style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(234,179,8,.4)", background: "rgba(234,179,8,.15)", color: "white" }}
-                      >
-                        🟡 Alerta
-                      </button>
-                      <button
-                        onClick={() => setStatus(p.id, "critico")}
-                        style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid rgba(239,68,68,.4)", background: "rgba(239,68,68,.15)", color: "white" }}
-                      >
-                        🔴 Crítico
-                      </button>
-                    </div>
-
-                    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>
-                      Depois de classificar os pontos, clique em <b>“Gerar mapa (zonas)”</b>.
-                    </div>
-                  </div>
-                </Popup>
+            {/* marcador do meu local */}
+            {meuLocal && (
+              <Marker position={meuLocal}>
+                <Popup>📍 Meu local</Popup>
               </Marker>
-            ))}
+            )}
           </MapContainer>
         </div>
       </div>
