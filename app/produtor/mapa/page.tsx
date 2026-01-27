@@ -1,6 +1,9 @@
 // @ts-nocheck
 "use client";
 
+import "leaflet/dist/leaflet.css";
+import "leaflet-draw/dist/leaflet.draw.css";
+
 import dynamic from "next/dynamic";
 import React from "react";
 
@@ -15,6 +18,7 @@ function MapaInner() {
   const { useEffect, useMemo, useState } = React;
 
   const L = require("leaflet");
+  require("leaflet-draw"); // ✅ IMPORTANTE: carrega o JS do draw
   const turf = require("@turf/turf");
 
   const {
@@ -36,6 +40,7 @@ function MapaInner() {
   const [qtd, setQtd] = useState(30);
 
   useEffect(() => {
+    // ✅ corrige ícone padrão
     const icon = L.icon({
       iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
       iconRetinaUrl:
@@ -80,9 +85,7 @@ function MapaInner() {
         lat: p[0],
         lng: p[1],
         n: i + 1,
-        status: ["verde", "amarelo", "vermelho"][
-          Math.floor(Math.random() * 3)
-        ],
+        status: ["verde", "amarelo", "vermelho"][Math.floor(Math.random() * 3)],
       }));
 
     setPontos(sel);
@@ -95,36 +98,75 @@ function MapaInner() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", background: "#060b08", color: "white" }}>
-      <div style={{ padding: 12 }}>
-        <h2>Mapa de Monitoramento</h2>
-        <p>
-          1) Desenhe o talhão | 2) Defina grid | 3) Gerar pontos
-        </p>
+    <main style={{ height: "100vh", background: "#060b08", color: "white" }}>
+      {/* barra fixa em cima (pra não sumir no celular) */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 2000,
+          padding: 10,
+          background: "rgba(6,11,8,0.92)",
+          borderBottom: "1px solid rgba(255,255,255,.08)",
+        }}
+      >
+        <div style={{ maxWidth: 980, margin: "0 auto" }}>
+          <b>Mapa de Monitoramento</b>
+          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 4 }}>
+            1) Clique no botão de polígono (canto direito do mapa) e desenhe o talhão.
+            2) Defina grid e quantidade.
+            3) Gerar pontos.
+          </div>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-          <input
-            type="number"
-            value={gridHa}
-            onChange={(e) => setGridHa(Number(e.target.value))}
-            placeholder="Grid (ha)"
-          />
-          <input
-            type="number"
-            value={qtd}
-            onChange={(e) => setQtd(Number(e.target.value))}
-            placeholder="Qtde pontos"
-          />
-          <button onClick={gerarPontos}>Gerar pontos</button>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <input
+              type="number"
+              value={gridHa}
+              onChange={(e) => setGridHa(Number(e.target.value))}
+              placeholder="Grid (ha)"
+              style={{ width: 120, padding: 8, borderRadius: 10 }}
+            />
+            <input
+              type="number"
+              value={qtd}
+              onChange={(e) => setQtd(Number(e.target.value))}
+              placeholder="Qtde pontos"
+              style={{ width: 140, padding: 8, borderRadius: 10 }}
+            />
+            <button
+              onClick={gerarPontos}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 10,
+                background: "#1fa463",
+                color: "white",
+                fontWeight: 700,
+              }}
+            >
+              Gerar pontos
+            </button>
+            <a
+              href="/produtor"
+              style={{
+                padding: "8px 12px",
+                borderRadius: 10,
+                background: "rgba(255,255,255,.08)",
+                color: "white",
+                textDecoration: "none",
+                fontWeight: 700,
+              }}
+            >
+              Voltar
+            </a>
+          </div>
         </div>
       </div>
 
-      <div style={{ height: "75vh" }}>
-        <MapContainer
-          center={center}
-          zoom={14}
-          style={{ height: "100%", width: "100%" }}
-        >
+      {/* mapa */}
+      <div style={{ height: "100%", paddingTop: 110 }}>
+        <MapContainer center={center} zoom={14} style={{ height: "100%" }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
           <FeatureGroup>
@@ -152,9 +194,7 @@ function MapaInner() {
                 className: "ponto",
                 html: `<div style="
                   background:${cor(p.status)};
-                  width:14px;
-                  height:14px;
-                  border-radius:50%;
+                  width:14px;height:14px;border-radius:50%;
                   border:2px solid white"></div>`,
               })}
             >
