@@ -1,9 +1,5 @@
-import dynamic from "next/dynamic";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-const MapaPage = dynamic(() => import("../produtor/mapa/page"), { ssr: false });
-
-export default function Page() {
-  return <MapaPage />;
+export default function ProRedirect() {
+  redirect("/produtor");
 }
