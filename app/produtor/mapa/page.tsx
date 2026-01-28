@@ -1,6 +1,9 @@
 // @ts-nocheck
 "use client";
 
+import "leaflet/dist/leaflet.css";
+import "leaflet-draw/dist/leaflet.draw.css";
+
 import dynamic from "next/dynamic";
 import React from "react";
 
@@ -15,26 +18,30 @@ function MapaInner() {
   const { useEffect, useMemo, useState } = React;
 
   const L = require("leaflet");
-  require("leaflet-draw/dist/leaflet.draw.js");
+  require("leaflet-draw");
   const turf = require("@turf/turf");
 
   const {
     MapContainer,
     TileLayer,
     FeatureGroup,
+    Marker,
+    Popup,
   } = require("react-leaflet");
 
   const { EditControl } = require("react-leaflet-draw");
 
   const center = useMemo(() => [-15.60, -56.10], []);
-
-  const [grid, setGrid] = useState([]);
+  const [area, setArea] = useState(null);
+  const [grids, setGrids] = useState([]);
 
   useEffect(() => {
     const icon = L.icon({
       iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      iconRetinaUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      shadowUrl:
+        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       iconSize: [25, 41],
       iconAnchor: [12, 41],
     });
@@ -42,61 +49,71 @@ function MapaInner() {
     L.Marker.prototype.options.icon = icon;
   }, []);
 
-  function gerarGrid(latlngs) {
-    const coords = latlngs[0].map((p) => [p.lng, p.lat]);
-    coords.push(coords[0]);
+  function onCreated(e: any) {
+    const layer = e.layer;
+    const geo = layer.toGeoJSON();
 
-    const polygon = turf.polygon([coords]);
-    const bbox = turf.bbox(polygon);
+    const areaHa = turf.area(geo) / 10000;
+    setArea(areaHa.toFixed(2));
 
-    const cellSize = 0.03; // quanto menor, mais quadrados
-    const options = { units: "kilometers" };
-
-    const squareGrid = turf.squareGrid(bbox, cellSize, options);
-
-    const filtrado = squareGrid.features.filter((f) =>
-      turf.booleanIntersects(f, polygon)
-    );
-
-    setGrid(filtrado);
+    gerarGrid(geo);
   }
 
-  function onCreated(e) {
-    if (e.layerType === "polygon") {
-      const latlngs = e.layer.getLatLngs();
-      gerarGrid(latlngs);
-    }
+  function gerarGrid(geojson: any) {
+    const bbox = turf.bbox(geojson);
+    const cell = 0.002; // tamanho do grid
+    const grid = turf.squareGrid(bbox, cell, { units: "degrees" });
+
+    const dentro = grid.features.filter((f: any) =>
+      turf.booleanIntersects(f, geojson)
+    );
+
+    setGrids(dentro);
   }
 
   return (
-    <MapContainer
-      center={center}
-      zoom={14}
-      style={{ height: "100vh", width: "100%" }}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-
-      <FeatureGroup>
-        <EditControl
-          position="topright"
-          onCreated={onCreated}
-          draw={{
-            rectangle: false,
-            circle: false,
-            polyline: false,
-            marker: false,
-            circlemarker: false,
-          }}
+    <div style={{ height: "100vh", width: "100%" }}>
+      <MapContainer
+        center={center}
+        zoom={14}
+        style={{ height: "100%", width: "100%" }}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution="© OpenStreetMap"
         />
-      </FeatureGroup>
 
-      {grid.map((g, i) => (
-        <FeatureGroup key={i}>
-          <TileLayer />
+        <FeatureGroup>
+          <EditControl
+            position="topright"
+            onCreated={onCreated}
+            draw={{
+              rectangle: true,
+              polygon: true,
+              circle: false,
+              polyline: false,
+              marker: false,
+              circlemarker: false,
+            }}
+          />
         </FeatureGroup>
-      ))}
-    </MapContainer>
+
+        {grids.map((g: any, i: number) => (
+          <GeoJSON key={i} data={g} style={{ color: "#00ff88", weight: 1 }} />
+        ))}
+
+        <Marker position={center}>
+          <Popup>
+            {area ? (
+              <>
+                <b>Área:</b> {area} ha
+              </>
+            ) : (
+              "Desenhe o talhão"
+            )}
+          </Popup>
+        </Marker>
+      </MapContainer>
+    </div>
   );
 }
