@@ -1,131 +1,98 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { useEffect, useRef } from "react";
+import L from "leaflet";
+import "leaflet-draw";
 
 export default function ProdutorMapa() {
-  const mapRef = useRef<any>(null);
-  const drawnRef = useRef<any>(null);
-  const baseLayersRef = useRef<any>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
     if (mapRef.current) return;
 
-    const L = require("leaflet");
-    require("leaflet-draw");
-
-    // ====== Corrige ícones padrão ======
-    const icon = L.icon({
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-    });
-    L.Marker.prototype.options.icon = icon;
-
-    // ====== Cria mapa ======
-    const map = L.map("produtor-mapa", {
-      center: [-15.6, -56.1],
+    const map = L.map("map", {
+      center: [-15.601, -56.097], // MT como padrão
       zoom: 13,
-      zoomControl: false,
+      zoomControl: true,
+      attributionControl: false
     });
 
     mapRef.current = map;
 
-    // ====== Bases ======
     const street = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-    }).addTo(map);
-
-    const satellite = L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      { maxZoom: 19 }
-    );
-
-    baseLayersRef.current = { street, satellite };
-
-    // ====== Camada de desenho ======
-    const drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
-    drawnRef.current = drawnItems;
-
-    // ====== Controles ======
-    new L.Control.Zoom({ position: "bottomright" }).addTo(map);
-
-    new L.Control.Draw({
-      position: "bottomright",
-      draw: {
-        polygon: true,
-        rectangle: false,
-        circle: false,
-        circlemarker: false,
-        marker: false,
-        polyline: false,
-      },
-      edit: {
-        featureGroup: drawnItems,
-        remove: true,
-      },
-    }).addTo(map);
-
-    // ====== Eventos ======
-    map.on(L.Draw.Event.CREATED, (e: any) => {
-      const layer = e.layer;
-      drawnItems.addLayer(layer);
-
-      const geo = layer.toGeoJSON();
-      window.dispatchEvent(new CustomEvent("agros:drawCreated", { detail: geo }));
+      maxZoom: 20
     });
 
-    // ====== Ponte UI ======
-    window.addEventListener("agros:setBase", (ev: any) => {
-      const next = ev?.detail;
-      if (!baseLayersRef.current) return;
+    const sat = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 20 }
+    );
 
-      map.eachLayer((layer: any) => {
-        if (layer === street || layer === satellite) {
-          map.removeLayer(layer);
-        }
+    street.addTo(map);
+
+    L.control.layers(
+      { "🗺 Mapa": street, "🛰 Satélite": sat },
+      {},
+      { position: "topright" }
+    ).addTo(map);
+
+    // Meu local
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        map.setView([latitude, longitude], 16);
+
+        L.marker([latitude, longitude])
+          .addTo(map)
+          .bindPopup("📍 Você está aqui")
+          .openPopup();
       });
+    }
 
-      if (next === "satelite") {
-        satellite.addTo(map);
-      } else {
-        street.addTo(map);
+    // Camada desenhável
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    const drawControl = new L.Control.Draw({
+      position: "topleft",
+      draw: {
+        polygon: {
+          allowIntersection: false,
+          showArea: true,
+          shapeOptions: { color: "#00ff99" }
+        },
+        rectangle: { shapeOptions: { color: "#00ff99" } },
+        polyline: false,
+        circle: false,
+        marker: false,
+        circlemarker: false
+      },
+      edit: {
+        featureGroup: drawnItems
       }
     });
 
-    window.addEventListener("agros:centerMe", () => {
-      if (!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const { latitude, longitude } = pos.coords;
-        map.setView([latitude, longitude], 16);
-      });
+    map.addControl(drawControl);
+
+    map.on(L.Draw.Event.CREATED, (event: any) => {
+      const layer = event.layer;
+      drawnItems.addLayer(layer);
+
+      if (layer instanceof L.Polygon || layer instanceof L.Rectangle) {
+        const latlngs = layer.getLatLngs() as any;
+        console.log("Área desenhada:", latlngs);
+      }
     });
 
-    window.addEventListener("agros:clearAll", () => {
-      drawnItems.clearLayers();
-      window.dispatchEvent(new CustomEvent("agros:cleared"));
-    });
-
-    window.addEventListener("agros:startDraw", () => {
-      const drawer = new L.Draw.Polygon(map);
-      drawer.enable();
-    });
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
   }, []);
 
   return (
-    <div
-      id="produtor-mapa"
-      style={{
-        width: "100%",
-        height: "100%",
-        background: "#05070b",
-      }}
-    />
+    <div style={{ width: "100%", height: "100vh" }}>
+      <div id="map" style={{ width: "100%", height: "100%" }} />
+    </div>
   );
 }
