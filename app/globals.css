@@ -1,67 +1,155 @@
+/* =========================================================
+   LEAFLET – obrigatório no App Router
+========================================================= */
 @import "leaflet/dist/leaflet.css";
 @import "leaflet-draw/dist/leaflet.draw.css";
 
-/* ===== RESET BÁSICO ===== */
+/* =========================================================
+   RESET + BASE
+========================================================= */
+:root {
+  color-scheme: dark;
+  --bg-0: #05070f;
+  --bg-1: #070b1a;
+  --bg-2: #0b1230;
+  --card: rgba(255,255,255,.06);
+  --card-strong: rgba(255,255,255,.1);
+  --stroke: rgba(255,255,255,.12);
+  --text: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.65);
+  --green: #00ff99;
+  --blue: #4da3ff;
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
-  margin: 0;
-  padding: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(900px 600px at 15% 10%, rgba(80,255,190,.12), transparent),
-              radial-gradient(900px 600px at 90% 30%, rgba(90,140,255,.12), transparent),
-              linear-gradient(180deg, #061018 0%, #040812 100%);
-  color: rgba(255,255,255,.92);
+  margin: 0;
+  padding: 0;
+  background:
+    radial-gradient(900px 600px at 10% 10%, rgba(0,255,150,.08), transparent 60%),
+    radial-gradient(900px 600px at 90% 30%, rgba(80,140,255,.08), transparent 60%),
+    linear-gradient(180deg, var(--bg-2), var(--bg-0));
+  color: var(--text);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-               Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+               Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
   overflow-x: hidden;
 }
 
-/* ===== Leaflet ajustes ===== */
+/* =========================================================
+   PADRÕES GERAIS
+========================================================= */
+
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  outline: none;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--stroke);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+}
+
+/* =========================================================
+   LEAFLET – mapa profissional
+========================================================= */
+
 .leaflet-container {
   width: 100%;
   height: 100%;
-  background: #05070b;
+  background: #000;
   font-family: inherit;
 }
 
-.leaflet-control {
-  border-radius: 12px !important;
-  backdrop-filter: blur(8px);
-}
-
-.leaflet-bar a {
-  background: rgba(15, 25, 40, 0.85) !important;
-  color: white !important;
-  border: 1px solid rgba(255,255,255,0.12) !important;
-}
-
-.leaflet-bar a:hover {
-  background: rgba(30, 50, 80, 0.9) !important;
-}
-
-/* ===== Leaflet draw ===== */
+/* Barra de zoom e draw */
+.leaflet-bar a,
 .leaflet-draw-toolbar a {
-  border-radius: 10px !important;
-}
-
-.leaflet-draw-actions a {
-  background: rgba(15,25,40,.9) !important;
+  background: rgba(10,15,30,.85) !important;
   color: white !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 12px !important;
+  margin-bottom: 6px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.4);
 }
 
-/* ===== Scrollbar profissional ===== */
-::-webkit-scrollbar {
-  width: 10px;
+.leaflet-bar a:hover,
+.leaflet-draw-toolbar a:hover {
+  background: rgba(20,30,60,.95) !important;
 }
-::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.04);
+
+/* Controle de camadas */
+.leaflet-control-layers {
+  background: rgba(10,15,30,.85) !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  padding: 8px 10px;
+  color: white;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.18);
+
+.leaflet-control-layers label {
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Popup */
+.leaflet-popup-content-wrapper {
+  background: rgba(10,15,30,.95);
+  color: white;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 15px 35px rgba(0,0,0,.45);
+}
+
+.leaflet-popup-tip {
+  background: rgba(10,15,30,.95);
+}
+
+/* Tooltip draw */
+.leaflet-draw-tooltip {
+  background: rgba(0,0,0,.85);
+  border: 1px solid rgba(255,255,255,.2);
   border-radius: 10px;
+  color: white;
+}
+
+/* =========================================================
+   SCROLLBAR (Chrome / Edge / Android)
+========================================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.15);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,.25);
 }
