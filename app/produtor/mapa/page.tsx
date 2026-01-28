@@ -1,119 +1,130 @@
-// @ts-nocheck
 "use client";
 
-import "leaflet/dist/leaflet.css";
-import "leaflet-draw/dist/leaflet.draw.css";
+import React, { useMemo, useState } from "react";
+import styles from "./mapa.module.css";
+import ProdutorMapa from "../produtor-mapa";
 
-import dynamic from "next/dynamic";
-import React from "react";
-
-const MapaClient = dynamic(() => Promise.resolve(MapaInner), { ssr: false });
+type Base = "mapa" | "satelite";
 
 export default function Page() {
-  return <MapaClient />;
-}
+  const [base, setBase] = useState<Base>("mapa");
+  const [status, setStatus] = useState<string>("Pronto para desenhar o talhão.");
+  const [lastGeoJSON, setLastGeoJSON] = useState<any>(null);
 
-function MapaInner() {
-  const React = require("react");
-  const { useEffect, useMemo, useState } = React;
+  // Ponte: vamos ouvir eventos via window (simples e robusto no mobile)
+  useMemo(() => {
+    if (typeof window === "undefined") return;
 
-  const L = require("leaflet");
-  require("leaflet-draw");
-  const turf = require("@turf/turf");
+    const onCreated = (e: any) => {
+      setLastGeoJSON(e?.detail ?? null);
+      setStatus("Talhão desenhado! Agora você pode gerar a grade.");
+    };
 
-  const {
-    MapContainer,
-    TileLayer,
-    FeatureGroup,
-    Marker,
-    Popup,
-  } = require("react-leaflet");
+    const onCenter = () => setStatus("Centralizado no seu local.");
+    const onCleared = () => setStatus("Camadas limpas.");
 
-  const { EditControl } = require("react-leaflet-draw");
+    window.addEventListener("agros:drawCreated", onCreated as any);
+    window.addEventListener("agros:centerMe", onCenter as any);
+    window.addEventListener("agros:cleared", onCleared as any);
 
-  const center = useMemo(() => [-15.60, -56.10], []);
-  const [area, setArea] = useState(null);
-  const [grids, setGrids] = useState([]);
-
-  useEffect(() => {
-    const icon = L.icon({
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      iconRetinaUrl:
-        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      shadowUrl:
-        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-    });
-
-    L.Marker.prototype.options.icon = icon;
+    return () => {
+      window.removeEventListener("agros:drawCreated", onCreated as any);
+      window.removeEventListener("agros:centerMe", onCenter as any);
+      window.removeEventListener("agros:cleared", onCleared as any);
+    };
   }, []);
 
-  function onCreated(e: any) {
-    const layer = e.layer;
-    const geo = layer.toGeoJSON();
-
-    const areaHa = turf.area(geo) / 10000;
-    setArea(areaHa.toFixed(2));
-
-    gerarGrid(geo);
+  function setBaseLayer(next: Base) {
+    setBase(next);
+    window.dispatchEvent(new CustomEvent("agros:setBase", { detail: next }));
   }
 
-  function gerarGrid(geojson: any) {
-    const bbox = turf.bbox(geojson);
-    const cell = 0.002; // tamanho do grid
-    const grid = turf.squareGrid(bbox, cell, { units: "degrees" });
+  function centerMe() {
+    window.dispatchEvent(new CustomEvent("agros:centerMe"));
+  }
 
-    const dentro = grid.features.filter((f: any) =>
-      turf.booleanIntersects(f, geojson)
-    );
+  function startDraw() {
+    window.dispatchEvent(new CustomEvent("agros:startDraw"));
+    setStatus("Modo desenho ativado. Toque no mapa para marcar os pontos.");
+  }
 
-    setGrids(dentro);
+  function clearAll() {
+    window.dispatchEvent(new CustomEvent("agros:clearAll"));
+    setStatus("Limpando…");
+  }
+
+  function gerarGrade() {
+    if (!lastGeoJSON) {
+      setStatus("Desenhe um talhão primeiro.");
+      return;
+    }
+    // aqui depois você liga com turf + grid real
+    setStatus("Grade: em breve (próximo passo). Talhão já está salvo.");
+    alert("✅ Talhão capturado! Próximo passo: gerar grid real por tamanho (ex: 1ha/2ha).");
   }
 
   return (
-    <div style={{ height: "100vh", width: "100%" }}>
-      <MapContainer
-        center={center}
-        zoom={14}
-        style={{ height: "100%", width: "100%" }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="© OpenStreetMap"
-        />
+    <div className={styles.shell}>
+      <header className={styles.header}>
+        <div className={styles.brand}>
+          <div className={styles.logo}>🌿</div>
+          <div className={styles.brandTxt}>
+            <div className={styles.title}>LFM Agro</div>
+            <div className={styles.sub}>Mapa do Produtor</div>
+          </div>
+        </div>
 
-        <FeatureGroup>
-          <EditControl
-            position="topright"
-            onCreated={onCreated}
-            draw={{
-              rectangle: true,
-              polygon: true,
-              circle: false,
-              polyline: false,
-              marker: false,
-              circlemarker: false,
-            }}
-          />
-        </FeatureGroup>
+        <div className={styles.chips}>
+          <button
+            className={`${styles.chip} ${base === "mapa" ? styles.chipOn : ""}`}
+            onClick={() => setBaseLayer("mapa")}
+            type="button"
+          >
+            🗺️ Mapa
+          </button>
+          <button
+            className={`${styles.chip} ${base === "satelite" ? styles.chipOn : ""}`}
+            onClick={() => setBaseLayer("satelite")}
+            type="button"
+          >
+            🛰️ Satélite
+          </button>
+          <button className={styles.chip} onClick={centerMe} type="button">
+            📍 Meu local
+          </button>
+        </div>
+      </header>
 
-        {grids.map((g: any, i: number) => (
-          <GeoJSON key={i} data={g} style={{ color: "#00ff88", weight: 1 }} />
-        ))}
+      <main className={styles.main}>
+        <div className={styles.mapWrap}>
+          <ProdutorMapa />
+        </div>
 
-        <Marker position={center}>
-          <Popup>
-            {area ? (
-              <>
-                <b>Área:</b> {area} ha
-              </>
-            ) : (
-              "Desenhe o talhão"
-            )}
-          </Popup>
-        </Marker>
-      </MapContainer>
+        <div className={styles.bottom}>
+          <div className={styles.statusRow}>
+            <span className={styles.dot} />
+            <span className={styles.status}>{status}</span>
+          </div>
+
+          <div className={styles.actions}>
+            <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={startDraw} type="button">
+              ✍️ Desenhar talhão
+            </button>
+
+            <button className={`${styles.btn} ${styles.btnGhost}`} onClick={gerarGrade} type="button">
+              🔳 Gerar grade
+            </button>
+
+            <button className={`${styles.btn} ${styles.btnDanger}`} onClick={clearAll} type="button">
+              🧹 Limpar
+            </button>
+          </div>
+
+          <div className={styles.hint}>
+            Dica: use <b>Satélite</b> para pegar melhor as bordas do talhão.
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
