@@ -1,14 +1,110 @@
 @import "leaflet/dist/leaflet.css";
 @import "leaflet-draw/dist/leaflet.draw.css";
 
-html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
+/* ===== RESET GLOBAL ===== */
+* {
+  box-sizing: border-box;
   padding: 0;
+  margin: 0;
 }
 
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  background: radial-gradient(1200px 800px at 20% 10%, rgba(88,255,182,.10), transparent 55%),
+              radial-gradient(900px 700px at 90% 20%, rgba(118,167,255,.10), transparent 55%),
+              linear-gradient(180deg, #071018 0%, #050814 100%);
+  color: rgba(255,255,255,.92);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Remove highlight azul feio no mobile */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Leaflet corrigido */
 .leaflet-container {
   width: 100%;
-  height: 100vh;
+  height: 100%;
+  background: #0b0f12;
+  font-family: inherit;
+}
+
+.leaflet-control-attribution {
+  display: none;
+}
+
+/* Corrige bug de zoom quebrado */
+.leaflet-container img {
+  max-width: none !important;
+}
+
+/* Leaflet Draw acima de tudo */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 999 !important;
+}
+
+/* Scroll bonito */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.05);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.25);
+  border-radius: 10px;
+}
+
+/* ===== PADRÕES VISUAIS DO APP ===== */
+
+.appShell {
+  min-height: 100vh;
+  padding: 16px 14px 28px;
+}
+
+.card {
+  background: rgba(12, 16, 24, .65);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 22px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+
+.btn {
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.92);
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  background: linear-gradient(180deg, rgba(104,243,177,.25), rgba(104,243,177,.08));
+  border: 1px solid rgba(104,243,177,.35);
+  color: white;
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
+}
+
+input, textarea, select {
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: white;
+  outline: none;
+}
+
+input::placeholder, textarea::placeholder {
+  color: rgba(255,255,255,.45);
 }
